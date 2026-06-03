@@ -3,28 +3,22 @@
   "version": "1.2.0",
   "identifier": "com.aiworld.xvideo",
   "build": {
-    "beforeDevCommand": "",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "",
     "frontendDist": "../src"
   },
   "app": {
     "windows": [
       {
         "title": "X-Video Studio — AI World",
-        "width": 1440,
-        "height": 900,
-        "minWidth": 1024,
-        "minHeight": 700,
+        "width": 800,
+        "height": 600,
         "center": true,
-        "resizable": true,
-        "fullscreen": false,
-        "decorations": true,
+        "resizable": false,
+        "decorations": false,
         "transparent": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://192.168.1.12:8767 http://localhost:8767; frame-src 'self' http://192.168.1.12:8767 http://localhost:8767"
     }
   },
   "bundle": {
@@ -37,31 +31,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [],
     "macOS": {
       "minimumSystemVersion": "14.0"
-    },
-    "windows": {
-      "wix": null,
-      "nsis": null
-    },
-    "linux": {
-      "deb": {
-        "depends": []
-      }
     }
-  },
-  "plugins": {
-    "shell": {
-      "open": true,
-      "scope": [
-        {
-          "name": "xvideo-backend",
-          "cmd": "python3",
-          "args": true
-        }
-      ]
-    },
-    "process": {}
   }
 }
