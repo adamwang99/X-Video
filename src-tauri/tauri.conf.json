@@ -34,7 +34,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../backend/**",
+      "../backend/server.py",
       "../requirements.txt"
     ],
     "macOS": {
