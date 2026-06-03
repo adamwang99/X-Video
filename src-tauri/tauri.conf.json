@@ -6,19 +6,6 @@
     "frontendDist": "../frontend"
   },
   "app": {
-    "windows": [
-      {
-        "title": "X-Video Studio — AI World",
-        "width": 1440,
-        "height": 900,
-        "minWidth": 1024,
-        "minHeight": 700,
-        "center": true,
-        "resizable": true,
-        "fullscreen": false,
-        "decorations": true
-      }
-    ],
     "security": {
       "csp": "default-src 'self'; connect-src 'self' http://localhost:8767; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
     }
