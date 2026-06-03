@@ -417,14 +417,19 @@
           </div>
           <div class="row-3">
             <div class="field">
-              <label class="field-label">Voice</label>
+              <label class="field-label">Giọng đọc / Voice</label>
               <select id="voice" class="field-select">
-                <option value="Samantha">🇺🇸 Samantha</option>
-                <option value="Karen">🇦🇺 Karen</option>
-                <option value="Daniel">🇬🇧 Daniel</option>
-                <option value="Veena">🇮🇳 Veena</option>
-                <option value="Moira">🇮🇪 Moira</option>
-                <option value="Tessa">🇿🇦 Tessa</option>
+                <optgroup label="🇻🇳 Tiếng Việt (VieNeu TTS)">
+                  <option value="female_south">🇻🇳 Nữ Nam Bộ (mặc định)</option>
+                  <option value="female_north">🇻🇳 Nữ Bắc Bộ</option>
+                  <option value="male_south">🇻🇳 Nam Nam Bộ</option>
+                  <option value="male_north">🇻🇳 Nam Bắc Bộ</option>
+                </optgroup>
+                <optgroup label="🇺🇸 English (macOS say)">
+                  <option value="Samantha">🇺🇸 Samantha (Mỹ)</option>
+                  <option value="Karen">🇦🇺 Karen (Úc)</option>
+                  <option value="Daniel">🇬🇧 Daniel (Anh)</option>
+                </optgroup>
               </select>
             </div>
             <div class="field">
@@ -608,6 +613,7 @@
         hook: document.getElementById('hook').value.trim(),
         cta: document.getElementById('cta').value.trim(),
         voice: document.getElementById('voice').value,
+        language: document.getElementById('voice').value.startsWith('female') || document.getElementById('voice').value.startsWith('male') ? 'vi' : 'en',
         speed: document.getElementById('speed').value,
         style: getStyle(),
         music: document.getElementById('music').value,

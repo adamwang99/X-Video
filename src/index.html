@@ -3,51 +3,134 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>X-Video Studio — AI World</title>
+  <title>X-Video Studio</title>
   <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      margin:0;padding:0;
-      background:#030712;
-      display:flex;align-items:center;justify-content:center;
-      height:100vh;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      color:#e2e8f0;
+      background: #030712;
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; width: 100vw; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    .loader { text-align:center; }
-    .spinner { 
-      width:40px;height:40px;
-      border:3px solid rgba(99,102,241,0.15);
-      border-top-color:#6366f1;
-      border-radius:50%;
-      animation:spin 0.8s linear infinite;
-      margin:20px auto;
+    .splash {
+      text-align: center;
+      animation: fadeIn 0.6s ease;
     }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    h2 { font-size:18px; font-weight:600; color:#a78bfa; margin-bottom:8px; }
-    p { font-size:13px; color:rgba(148,163,184,0.6); }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    .logo-img {
+      width: 240px; height: auto;
+      border-radius: 20px;
+      margin-bottom: 32px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #a78bfa; margin-bottom: 6px; }
+    p { font-size: 13px; color: rgba(148,163,184,0.6); margin-bottom: 20px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(99,102,241,0.12);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status { font-size: 12px; color: rgba(148,163,184,0.4); margin-top: 16px; }
+    .loading-bar {
+      width: 200px; height: 3px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px; overflow: hidden;
+      margin: 16px auto 0;
+    }
+    .loading-fill {
+      height: 100%; width: 0;
+      background: linear-gradient(90deg, #6366f1, #a78bfa, #06b6d4);
+      border-radius: 2px;
+      animation: load 1.8s ease-in-out infinite;
+    }
+    @keyframes load {
+      0% { width: 0; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0; margin-left: 100%; }
+    }
+    .error-msg {
+      display: none;
+      margin-top: 16px; font-size: 12px; color: #fca5a5;
+    }
+    .error-msg a { color: #6366f1; }
   </style>
 </head>
 <body>
-  <div class="loader">
+  <div class="splash">
+    <img src="splash.png" alt="X-Video Studio" class="logo-img" id="splashLogo"/>
+    <h1>X-Video Studio</h1>
+    <p>Đang khởi động...</p>
     <div class="spinner"></div>
-    <h2>Kết nối X-Video Server...</h2>
-    <p>Nếu không tự động chuyển, <a id="link" style="color:#6366f1;text-decoration:none;">bấm vào đây</a></p>
+    <div class="loading-bar"><div class="loading-fill"></div></div>
+    <div class="status" id="statusText">Khởi tạo engine xử lý video</div>
+    <div class="error-msg" id="errorMsg">
+      Máy chủ chưa sẵn sàng. <a href="http://localhost:8767" target="_blank">Mở thủ công</a>
+    </div>
   </div>
   <script>
-    // Auto-redirect to the web app (the server is already running)
-    const BACKEND = 'http://192.168.1.12:8767';
-    document.getElementById('link').href = BACKEND;
-    
-    fetch(BACKEND + '/healthz', { timeout: 3000 })
-      .then(r => r.json())
-      .then(d => { if (d.status === 'ok') window.location.href = BACKEND; })
-      .catch(() => {
-        // Fallback: try localhost
-        fetch('http://localhost:8767/healthz', { timeout: 3000 })
-          .then(r => r.json())
-          .then(d => { if (d.status === 'ok') window.location.href = 'http://localhost:8767'; })
-          .catch(() => { /* offline mode placeholder */ });
-      });
+    const status = document.getElementById('statusText');
+    const errorMsg = document.getElementById('errorMsg');
+    const messages = [
+      'Khởi tạo engine xử lý video',
+      'Kết nối TTS voiceover',
+      'Tải giao diện chỉnh sửa',
+      'Sẵn sàng!'
+    ];
+
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+      msgIdx = Math.min(msgIdx + 1, messages.length - 1);
+      status.textContent = messages[msgIdx];
+    }, 1500);
+
+    function tryConnect() {
+      fetch('http://localhost:8767/healthz', { signal: AbortSignal.timeout(2000) })
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 'ok') {
+            clearInterval(msgInterval);
+            status.textContent = '✅ Sẵn sàng!';
+            setTimeout(() => { window.location.href = 'http://localhost:8767'; }, 500);
+          } else {
+            setTimeout(tryConnect, 1000);
+          }
+        })
+        .catch(() => setTimeout(tryConnect, 1000));
+    }
+
+    // Try for up to 30 seconds
+    let attempts = 0;
+    function connectWithTimeout() {
+      fetch('http://localhost:8767/healthz', { signal: AbortSignal.timeout(2000) })
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 'ok') {
+            clearInterval(msgInterval);
+            document.querySelector('.spinner').style.display = 'none';
+            status.textContent = '✅ Sẵn sàng!';
+            setTimeout(() => { window.location.href = 'http://localhost:8767'; }, 500);
+          } else {
+            retry();
+          }
+        })
+        .catch(() => retry());
+    }
+
+    function retry() {
+      attempts++;
+      if (attempts > 30) {
+        errorMsg.style.display = 'block';
+        document.querySelector('.spinner').style.display = 'none';
+        status.textContent = '⚠️ Không thể kết nối';
+        return;
+      }
+      setTimeout(connectWithTimeout, 1000);
+    }
+
+    connectWithTimeout();
   </script>
 </body>
 </html>

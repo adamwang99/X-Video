@@ -41,8 +41,8 @@ class GenerateRequest(BaseModel):
     hook: Optional[str] = None
     cta: Optional[str] = None
     aspect: str = "doc"
-    language: str = "en"
-    voice: str = "Samantha"
+    language: str = "vi"
+    voice: str = "female_south"
     speed: str = "normal"
     style: str = "news"
     resolution: str = "fhd"
@@ -77,9 +77,38 @@ def fetch_content(url):
     title = clean_html(m.group(1)) if m else slug.replace('-',' ')
     return title, html, title, datetime.now().strftime('%Y-%m-%d'), "TIN TỨC"
 
-def generate_voice(text, voice, output_path):
+def generate_voice(text, voice, output_path, language="vi"):
+    """TTS — Macmini VieNeu (Vietnamese) or macOS say (English)"""
     wc = len(text.split())
-    rate = min(210, max(140, int(wc / 50 * 60)))  # target ~50s
+    
+    if language == "vi":
+        # Use VieNeu TTS on Macmini (port 6023) — OpenAI compatible
+        import urllib.request as ureq
+        import json as jsonmod
+        voice_map = {"female_south": "female_south", "female_north": "female_north",
+                     "male_south": "male_south", "male_north": "male_north"}
+        vi_voice = voice_map.get(voice, "female_south")
+        payload = jsonmod.dumps({
+            "model": "vieneu", "input": text,
+            "voice": vi_voice, "speed": 1.0
+        }).encode()
+        req = ureq.Request("http://localhost:6023/v1/audio/speech",
+                          data=payload, method="POST")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with ureq.urlopen(req, timeout=120) as r:
+                with open(output_path, "wb") as f:
+                    f.write(r.read())
+            r_dur = subprocess.run(['ffprobe','-v','quiet','-show_entries','format=duration',
+                                    '-of','csv=p=0',str(output_path)],
+                                   capture_output=True, text=True, timeout=10)
+            dur = float(r_dur.stdout.strip() or 50)
+            return int(dur), wc, "vieneu"
+        except Exception as e:
+            print(f"VieNeu TTS failed: {e}, falling back to macOS say")
+    
+    # Fallback: macOS say
+    rate = min(210, max(140, int(wc / 50 * 60)))
     script_path = output_path.parent / "script.txt"
     with open(script_path, "w") as f: f.write(text)
     aiff = output_path.parent / "temp.aiff"
@@ -180,7 +209,7 @@ def process_job(jid: str, req: GenerateRequest):
 
         with jobs_lock: jobs[jid] = {"status":"processing","progress":30}
         voice_text = f"AI World News. {hook} {excerpt or title}. {cta} Visit a i world dot v n."
-        duration, wc, rate = generate_voice(voice_text, req.voice, jd/"voice.mp3")
+        duration, wc, rate = generate_voice(voice_text, req.voice, jd/"voice.mp3", req.language)
 
         with jobs_lock: jobs[jid] = {"status":"processing","progress":45}
         generate_bgm(req.music, duration, jd/"bgm.mp3")
@@ -230,8 +259,17 @@ def get_templates(): return {"doc":"Dọc 9:16","ngang":"Ngang 16:9","vuong":"Vu
 
 @app.get("/api/voices")
 def get_voices():
-    r = subprocess.run(['say','-v','?'], capture_output=True, text=True, timeout=10)
-    return {"voices": [l.split()[0] for l in r.stdout.strip().split('\n') if l.strip()]}
+    """Danh sachs giọng đọc: VieNeu (vi) + macOS say (en)"""
+    voices = [
+        {"id": "female_south", "name": "🇻🇳 Nữ Nam Bộ", "lang": "vi", "engine": "VieNeu"},
+        {"id": "female_north", "name": "🇻🇳 Nữ Bắc Bộ", "lang": "vi", "engine": "VieNeu"},
+        {"id": "male_south", "name": "🇻🇳 Nam Nam Bộ", "lang": "vi", "engine": "VieNeu"},
+        {"id": "male_north", "name": "🇻🇳 Nam Bắc Bộ", "lang": "vi", "engine": "VieNeu"},
+        {"id": "Samantha", "name": "🇺🇸 Samantha", "lang": "en", "engine": "macOS"},
+        {"id": "Karen", "name": "🇦🇺 Karen", "lang": "en", "engine": "macOS"},
+        {"id": "Daniel", "name": "🇬🇧 Daniel", "lang": "en", "engine": "macOS"},
+    ]
+    return {"voices": voices}
 
 @app.post("/api/generate", status_code=201)
 def generate(req: GenerateRequest, bg: BackgroundTasks):
