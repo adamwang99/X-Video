@@ -1,0 +1,14 @@
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/thiserror-292bdd30fe2b1403.d: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/thiserror-b13c797f1c89161c/out/private.rs
+
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/libthiserror-292bdd30fe2b1403.rlib: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/thiserror-b13c797f1c89161c/out/private.rs
+
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/libthiserror-292bdd30fe2b1403.rmeta: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/thiserror-b13c797f1c89161c/out/private.rs
+
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs:
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/thiserror-b13c797f1c89161c/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/thiserror-b13c797f1c89161c/out

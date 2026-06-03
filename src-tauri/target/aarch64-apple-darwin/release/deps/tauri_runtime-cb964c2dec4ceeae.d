@@ -1,0 +1,11 @@
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/tauri_runtime-cb964c2dec4ceeae.d: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/dpi.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/monitor.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/webview.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/window.rs
+
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/libtauri_runtime-cb964c2dec4ceeae.rlib: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/dpi.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/monitor.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/webview.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/window.rs
+
+/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/deps/libtauri_runtime-cb964c2dec4ceeae.rmeta: /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/lib.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/dpi.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/monitor.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/webview.rs /Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/window.rs
+
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/lib.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/dpi.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/monitor.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/webview.rs:
+/Users/tuan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-runtime-2.11.2/src/window.rs:

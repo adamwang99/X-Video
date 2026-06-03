@@ -1,6 +1,6 @@
 {
   "productName": "X-Video Studio",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "identifier": "com.aiworld.xvideo",
   "build": {
     "frontendDist": "../frontend"

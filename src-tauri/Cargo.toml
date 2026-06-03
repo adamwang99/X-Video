@@ -1,6 +1,6 @@
 [package]
 name = "xvideo-studio"
-version = "1.2.0"
+version = "1.4.0"
 description = "AI World URL-to-Video Studio"
 authors = ["AI World"]
 edition = "2021"

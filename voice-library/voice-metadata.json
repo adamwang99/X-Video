@@ -1,0 +1,79 @@
+{
+  "female_south": {
+    "id": "female_south",
+    "name": "🇻🇳 Nữ Nam Bộ",
+    "engine": "vieneu",
+    "source": "builtin",
+    "language": "vi",
+    "gender": "female",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "female_north": {
+    "id": "female_north",
+    "name": "🇻🇳 Nữ Bắc Bộ",
+    "engine": "vieneu",
+    "source": "builtin",
+    "language": "vi",
+    "gender": "female",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "male_south": {
+    "id": "male_south",
+    "name": "🇻🇳 Nam Nam Bộ",
+    "engine": "vieneu",
+    "source": "builtin",
+    "language": "vi",
+    "gender": "male",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "male_north": {
+    "id": "male_north",
+    "name": "🇻🇳 Nam Bắc Bộ",
+    "engine": "vieneu",
+    "source": "builtin",
+    "language": "vi",
+    "gender": "male",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "Samantha": {
+    "id": "Samantha",
+    "name": "🇺🇸 Samantha",
+    "engine": "macos",
+    "source": "builtin",
+    "language": "en",
+    "gender": "female",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "Karen": {
+    "id": "Karen",
+    "name": "🇦🇺 Karen",
+    "engine": "macos",
+    "source": "builtin",
+    "language": "en",
+    "gender": "female",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  },
+  "Daniel": {
+    "id": "Daniel",
+    "name": "🇬🇧 Daniel",
+    "engine": "macos",
+    "source": "builtin",
+    "language": "en",
+    "gender": "male",
+    "sample_path": "",
+    "created_at": "2026-01-01",
+    "size_bytes": 0
+  }
+}
