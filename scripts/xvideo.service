@@ -1,0 +1,20 @@
+[Unit]
+Description=X-Video Studio — URL to Video Pipeline
+Documentation=https://github.com/adamwang99/X-Video
+After=network.target
+
+[Service]
+Type=simple
+User=%u
+WorkingDirectory=%h/X-Video
+ExecStart=%h/.local/bin/python3 %h/X-Video/backend/server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=xvideo
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="HOME=%h"
+
+[Install]
+WantedBy=default.target
