@@ -43,8 +43,7 @@
       "../requirements.txt"
     ],
     "macOS": {
-      "minimumSystemVersion": "14.0",
-      "signing": false
+      "minimumSystemVersion": "14.0"
     },
     "windows": {
       "wix": null,
