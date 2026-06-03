@@ -1,13 +1,14 @@
 <div align="center">
-  <img src="docs/logo-xvideo.svg" alt="X-Video Logo" width="200" />
+  <img src="docs/logo-xvideo.png" alt="X-Video Logo" width="180" />
   <h1>X-Video Studio</h1>
   <h3>URL → Video. Tích tắc.</h3>
 
   <p>
-    <img src="https://img.shields.io/badge/version-1.2-blueviolet?style=flat-square" />
+    <img src="https://img.shields.io/badge/version-v1.2-blueviolet?style=flat-square" />
     <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Ubuntu-blue?style=flat-square" />
     <img src="https://img.shields.io/badge/license-Apache%202.0-success?style=flat-square" />
     <img src="https://img.shields.io/badge/GPU-Apple%20M4%20%7C%20CUDA-orange?style=flat-square" />
+    <img src="https://img.shields.io/badge/engine-HyperFrames%200.6.7-8b5cf6?style=flat-square" />
   </p>
 </div>
 
