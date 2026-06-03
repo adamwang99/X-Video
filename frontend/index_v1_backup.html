@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>X-Video Studio — AI World</title>
+  <link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    :root {
+      --indigo-300: #a5b4fc; --indigo-400: #818cf8; --indigo-500: #6366f1; --indigo-600: #4f46e5;
+      --violet-300: #c4b5fd; --violet-400: #a78bfa; --violet-500: #8b5cf6; --violet-600: #7c3aed;
+      --cyan-300: #67e8f9; --cyan-400: #22d3ee; --cyan-500: #06b6d4;
+      --pink-400: #f472b6; --pink-500: #ec4899;
+      --amber-400: #fbbf24; --amber-500: #f59e0b;
+      --emerald-400: #34d399; --emerald-500: #10b981;
+      --bg-deep: #05070f;
+      --bg-surface: rgba(16, 24, 48, 0.72);
+      --bg-card: rgba(20, 28, 52, 0.55);
+      --bg-card-hover: rgba(28, 36, 64, 0.65);
+      --border-glass: rgba(99, 102, 241, 0.08);
+      --border-hover: rgba(139, 92, 246, 0.18);
+      --border-active: rgba(139, 92, 246, 0.35);
+      --text-primary: #e8edf5;
+      --text-secondary: rgba(148, 163, 184, 0.85);
+      --text-dim: rgba(120, 135, 160, 0.5);
+      --success: #22c55e; --error: #ef4444; --warning: #eab308;
+      --radius: 20px; --radius-sm: 14px; --radius-xs: 10px;
+      --shadow-glow: 0 0 60px rgba(99, 102, 241, 0.06);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:var(--font);
+      background:var(--bg-deep);color:var(--text-primary);
+      min-height:100vh;overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
+    .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse 100% 70% at 5% 15%, rgba(99,102,241,.09), transparent 55%),
+        radial-gradient(ellipse 80% 60% at 88% 25%, rgba(139,92,246,.07), transparent 50%),
+        radial-gradient(ellipse 70% 50% at 50% 75%, rgba(6,182,212,.04), transparent 45%),
+        radial-gradient(ellipse 50% 40% at 25% 50%, rgba(99,102,241,.03), transparent 40%),
+        radial-gradient(ellipse 60% 40% at 75% 60%, rgba(192,132,252,.035), transparent 40%);}
+    .orb{position:fixed;border-radius:50%;filter:blur(160px);opacity:.07;pointer-events:none;z-index:0}
+    .orb-1{width:520px;height:520px;top:-80px;left:-80px;background:linear-gradient(135deg,var(--indigo-500),var(--violet-500));animation:drift 20s ease-in-out infinite}
+    .orb-2{width:380px;height:380px;bottom:3%;right:-50px;background:linear-gradient(135deg,var(--violet-500),var(--pink-500));animation:drift 24s ease-in-out infinite reverse}
+    .orb-3{width:260px;height:260px;top:35%;left:40%;background:linear-gradient(135deg,var(--cyan-400),var(--indigo-400));animation:drift 28s ease-in-out infinite}
+    .orb-4{width:180px;height:180px;top:60%;right:20%;background:radial-gradient(circle,var(--amber-400),transparent);opacity:.04;animation:drift 22s ease-in-out infinite}
+    @keyframes drift{0%,100%{transform:translate(0,0)scale(1)}25%{transform:translate(40px,-30px)scale(1.08)}50%{transform:translate(-20px,20px)scale(.95)}75%{transform:translate(30px,10px)scale(1.04)}}
+
+    .app{position:relative;z-index:1;max-width:1520px;margin:0 auto;padding:18px 18px 40px}
+
+    .header{position:sticky;top:8px;z-index:100;margin-bottom:18px}
+    .header-bar{
+      display:flex;align-items:center;gap:14px;padding:10px 20px;
+      background:var(--bg-surface);backdrop-filter:blur(32px) saturate(1.4);
+      -webkit-backdrop-filter:blur(32px) saturate(1.4);
+      border:1px solid var(--border-glass);border-radius:18px;
+      box-shadow:0 8px 40px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
+      transition:all .3s ease;
+    }
+    .header:hover{border-color:rgba(139,92,246,.12)}
+    .header-logo-img{width:44px;height:44px;border-radius:12px;object-fit:cover;box-shadow:0 0 20px rgba(99,102,241,.1)}
+    .header-title{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--violet-300),var(--indigo-400));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.4px}
+    .header-badges{display:flex;gap:6px;margin-left:auto}
+    .badge{padding:3px 10px;border-radius:8px;font-size:10px;font-weight:600;letter-spacing:.3px}
+    .badge-ver{background:rgba(99,102,241,.08);color:var(--indigo-400);border:1px solid rgba(99,102,241,.12)}
+    .badge-gpu{background:rgba(34,211,238,.06);color:var(--cyan-400);border:1px solid rgba(34,211,238,.1)}
+
+    .main-grid{display:grid;grid-template-columns:1fr 420px;gap:16px;align-items:start}
+    @media(max-width:1100px){.main-grid{grid-template-columns:1fr}}
+
+    .card{
+      background:var(--bg-card);backdrop-filter:blur(24px) saturate(1.2);
+      -webkit-backdrop-filter:blur(24px) saturate(1.2);
+      border:1px solid var(--border-glass);border-radius:var(--radius);
+      padding:20px 22px;margin-bottom:14px;
+      box-shadow:var(--shadow-glow);
+      transition:all .25s cubic-bezier(.4,0,.2,1);
+    }
+    .card:hover{border-color:var(--border-hover);box-shadow:0 0 70px rgba(99,102,241,.04)}
+    .card-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .card-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px}
+    .card-icon.purple{background:rgba(139,92,246,.1)}
+    .card-icon.blue{background:rgba(99,102,241,.1)}
+    .card-icon.cyan{background:rgba(6,182,212,.08)}
+    .card-icon.green{background:rgba(16,185,129,.08)}
+    .card-icon.amber{background:rgba(245,158,11,.08)}
+    .card-icon.pink{background:rgba(236,72,153,.08)}
+    .card-title{font-size:13px;font-weight:700;letter-spacing:-.1px;color:var(--text-primary)}
+    .card-sub{font-size:10px;color:var(--text-dim);font-weight:500;margin-left:auto}
+
+    .field{margin-bottom:12px}
+    .field-label{display:block;font-size:10px;font-weight:600;margin-bottom:4px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px}
+    .field-input,.field-select,.field-textarea{
+      width:100%;padding:10px 14px;background:rgba(12,16,32,.6);
+      border:1px solid var(--border-glass);border-radius:var(--radius-sm);
+      color:var(--text-primary);font-size:13px;font-family:var(--font);
+      transition:all .2s ease;outline:none;
+    }
+    .field-input:hover,.field-select:hover,.field-textarea:hover{border-color:rgba(99,102,241,.15)}
+    .field-input:focus,.field-select:focus,.field-textarea:focus{border-color:rgba(139,92,246,.3);box-shadow:0 0 0 3px rgba(99,102,241,.06)}
+    .field-textarea{min-height:72px;resize:vertical}
+
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+    @media(max-width:768px){.row-2,.row-3,.row-4{grid-template-columns:1fr}}
+
+    .chips{display:flex;gap:5px;flex-wrap:wrap}
+    .chip{padding:6px 12px;border-radius:16px;border:1px solid var(--border-glass);background:rgba(12,16,32,.35);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--text-secondary);user-select:none}
+    .chip:hover{border-color:var(--border-hover);color:var(--text-primary);background:rgba(99,102,241,.03)}
+    .chip.selected{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.07);color:var(--indigo-400);box-shadow:0 0 20px rgba(99,102,241,.06)}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 20px;border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
+    .btn-primary{width:100%;background:linear-gradient(135deg,var(--indigo-500) 0%,var(--violet-500) 100%);color:#fff;box-shadow:0 4px 24px rgba(99,102,241,.2)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(99,102,241,.28);background:linear-gradient(135deg,var(--indigo-400) 0%,var(--violet-500) 100%)}
+    .btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-glass{padding:8px 14px;font-size:11px;background:rgba(12,16,32,.5);border:1px solid var(--border-glass);color:var(--text-primary);border-radius:10px}
+    .btn-glass:hover{border-color:var(--border-hover);background:rgba(99,102,241,.04)}
+    .btn-glass.active{border-color:rgba(99,102,241,.25);background:rgba(99,102,241,.06);color:var(--indigo-400)}
+    .btn-icon{padding:6px;border-radius:8px;min-width:30px;height:30px;border:1px solid var(--border-glass);background:rgba(12,16,32,.4);cursor:pointer;color:var(--text-secondary);font-size:12px;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
+    .btn-icon:hover{border-color:var(--border-hover);color:var(--text-primary);background:rgba(99,102,241,.04)}
+    .btn-icon.active{color:var(--error);border-color:rgba(239,68,68,.2)}
+
+    .voice-section{margin-bottom:10px}
+    .voice-section-title{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding:0 4px}
+    .voice-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;transition:all .15s;cursor:default}
+    .voice-item:hover{background:rgba(99,102,241,.03)}
+    .voice-item.selected{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.1);margin:0 -1px}
+    .voice-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(99,102,241,.08);flex-shrink:0}
+    .voice-info{flex:1;min-width:0}
+    .voice-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+    .voice-meta{font-size:9px;color:var(--text-dim);margin-top:1px}
+    .voice-actions{display:flex;gap:3px;flex-shrink:0}
+    .voice-play-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border-glass);background:rgba(12,16,32,.4);cursor:pointer;color:var(--text-secondary);font-size:10px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+    .voice-play-btn:hover{border-color:var(--indigo-400);color:var(--indigo-400);background:rgba(99,102,241,.05)}
+    .voice-play-btn.playing{color:var(--indigo-400);border-color:var(--indigo-400);background:rgba(99,102,241,.08);animation:pulse 1s infinite}
+    .voice-fav-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--border-glass);background:rgba(12,16,32,.4);cursor:pointer;color:var(--text-dim);font-size:10px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+    .voice-fav-btn:hover{border-color:rgba(239,68,68,.2);color:var(--error)}
+    .voice-fav-btn.fav{color:var(--error);border-color:rgba(239,68,68,.2)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    .voice-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border-glass),transparent);margin:8px 0}
+
+    .clone-area{border:1px dashed var(--border-glass);border-radius:var(--radius-sm);padding:16px;text-align:center;transition:all .2s;margin-top:8px;background:rgba(12,16,32,.3)}
+    .clone-area:hover{border-color:var(--border-hover);background:rgba(99,102,241,.02)}
+    .clone-icon{font-size:24px;margin-bottom:6px;opacity:.5}
+    .clone-text{font-size:11px;color:var(--text-dim)}
+    input[type=file]{display:none}
+
+    .music-list{margin-top:6px}
+    .music-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;transition:all .15s;cursor:pointer}
+    .music-item:hover{background:rgba(99,102,241,.03)}
+    .music-item.selected{background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.08)}
+    .music-name{font-size:11px;font-weight:500;flex:1}
+
+    .preview-content{background:rgba(12,16,32,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:14px 16px;margin:10px 0;display:none}
+    .preview-content.visible{display:block;animation:fadeIn .3s ease}
+    .preview-title{font-size:14px;font-weight:700;color:var(--indigo-400);margin-bottom:4px;line-height:1.3}
+    .preview-meta{font-size:10px;color:var(--text-dim);margin-bottom:10px;display:flex;gap:8px}
+    .preview-meta-tag{padding:2px 6px;border-radius:4px;background:rgba(99,102,241,.06);color:var(--indigo-400);font-weight:500}
+    .preview-body{font-size:12px;color:var(--text-secondary);line-height:1.6;max-height:160px;overflow-y:auto;word-wrap:break-word}
+    .preview-body::-webkit-scrollbar{width:3px}
+    .preview-body::-webkit-scrollbar-thumb{background:var(--border-glass);border-radius:2px}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+    .progress-box{display:none}
+    .progress-box.visible{display:block;animation:fadeIn .3s}
+    .progress-card{background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.08);border-radius:var(--radius-sm);padding:16px 18px;margin:10px 0}
+    .progress-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:8px}
+    .progress-bar{width:100%;height:6px;background:rgba(255,255,255,.03);border-radius:3px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--indigo-500),var(--violet-500));border-radius:3px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+    .progress-text{font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px}
+
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .stat{background:rgba(12,16,32,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:10px;text-align:center}
+    .stat-value{font-size:18px;font-weight:700;background:linear-gradient(135deg,var(--indigo-400),var(--violet-400));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-label{font-size:9px;color:var(--text-dim);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+
+    .alert{display:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;margin:8px 0;animation:fadeIn .25s}
+    .alert.visible{display:flex;align-items:center;gap:6px}
+    .alert-error{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);color:#fca5a5}
+    .alert-success{background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.1);color:#86efac}
+
+    .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--indigo-400);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .player-placeholder{
+      width:100%;aspect-ratio:9/16;max-height:600px;
+      background:rgba(12,16,32,.5);border:1px dashed var(--border-glass);border-radius:var(--radius);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:8px;color:var(--text-dim);font-size:11px
+    }
+    #videoPlayerContainer video{width:100%;border-radius:var(--radius)}
+    .separator{height:1px;background:linear-gradient(90deg,transparent,var(--border-glass) 20%,var(--border-glass) 80%,transparent);margin:16px 0}
+
+    details summary{font-size:11px;font-weight:600;color:var(--indigo-400);cursor:pointer;padding:4px 0;user-select:none}
+    details summary::-webkit-details-marker{color:var(--indigo-400)}
+    a{color:var(--indigo-400);text-decoration:none}
+    footer{text-align:center;padding:24px 0 10px;color:var(--text-dim);font-size:9px;opacity:.4}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-glass);border-radius:2px}
+  </style>
+</head>
+<body>
+  <div class="aurora-bg"></div>
+  <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div><div class="orb orb-4"></div>
+
+  <div class="app">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-bar">
+        <img src="/static/logo-xvideo.png" class="header-logo-img" alt="X-Video"/>
+        <span class="header-title">X-Video Studio</span>
+        <div class="header-badges">
+          <span class="badge badge-ver">v1.5</span>
+          <span class="badge badge-gpu">M4 - GPU</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- SOURCE -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple">&#x1F4F0;</div>
+            <span class="card-title">Nguon noi dung</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <input type="text" id="url" class="field-input" style="flex:1" placeholder="https://aiworld.news/vi/slug-bai-viet/"/>
+            <button class="btn btn-glass" onclick="fetchUrl()" id="fetchBtn">&#x1F4E5; Lay</button>
+          </div>
+          <textarea id="text" class="field-textarea" placeholder="Hoac paste noi dung truc tiep tai day..." rows="2" style="min-height:50px"></textarea>
+        </div>
+
+        <!-- SCRIPT EDITOR -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">&#x1F4DD;</div>
+            <span class="card-title">Kich ban video</span>
+            <span class="card-sub">Nhan <b>Lay noi dung</b> de tu dong sinh script ~45-90s</span>
+          </div>
+
+          <div class="preview-content" id="previewContent">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="preview-title" id="previewTitle">---</div>
+              <span class="preview-meta-tag" id="previewCat">Cong nghe</span>
+            </div>
+            <div class="preview-meta">
+              <span id="previewDate">---</span>
+              <span id="previewSource" style="color:var(--text-dim)"></span>
+            </div>
+            <div class="preview-body" id="previewBody">---</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Hook mo dau (3s - thu hut)</label>
+            <div class="chips" style="margin-bottom:5px">
+              <span class="chip" onclick="setVal('hook',this,'Tin nong:')">Tin nong</span>
+              <span class="chip" onclick="setVal('hook',this,'Ban co biet...')">Ban co biet</span>
+              <span class="chip" onclick="setVal('hook',this,'Dot pha moi:')">Dot pha</span>
+              <span class="chip" onclick="setVal('hook',this,'Canh bao:')">Canh bao</span>
+              <span class="chip" onclick="setVal('hook',this,'Day la ly do...')">Ly do</span>
+            </div>
+            <textarea id="hook" class="field-textarea" rows="1" style="min-height:34px;font-size:12px" placeholder="Cau mo dau thu hut trong 3 giay...">Tin nong:</textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Noi dung chinh (script tu dong ~45-90s)</label>
+            <textarea id="mainContent" class="field-textarea" rows="4" style="min-height:90px;font-size:12px" placeholder="Noi dung bai viet se hien thi o day sau khi lay URL. Ban co the chinh sua de keo dai hoac rut gon script."></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label">CTA ket thuc</label>
+            <div class="chips" style="margin-bottom:5px">
+              <span class="chip" onclick="setVal('cta',this,'Like & Follow de cap nhat tin cong nghe moi ngay!')">Like</span>
+              <span class="chip" onclick="setVal('cta',this,'Truy cap AI World de doc them!')">AI World</span>
+              <span class="chip" onclick="setVal('cta',this,'Ban nghi sao? Comment ben duoi!')">Comment</span>
+              <span class="chip" onclick="setVal('cta',this,'Dang ky de khong bo lo!')">Dang ky</span>
+            </div>
+            <textarea id="cta" class="field-textarea" rows="1" style="min-height:34px;font-size:12px" placeholder="Keu goi hanh dong cuoi video...">Like & Follow de cap nhat tin cong nghe moi ngay!</textarea>
+          </div>
+        </div>
+
+        <!-- STYLE + VOICE + SETTINGS -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon cyan">&#x1F3A8;</div>
+            <span class="card-title">Phong cach &amp; Voice</span>
+          </div>
+
+          <div class="row-4">
+            <div class="field"><label class="field-label">Phong cach</label>
+              <select id="style" class="field-select">
+                <option value="news">Ban tin</option>
+                <option value="reportage">Phong su</option>
+                <option value="analysis">Phan tich</option>
+                <option value="story">Ke chuyen</option>
+                <option value="hot">Tin nong</option>
+                <option value="tutorial">Huong dan</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label">Toc do</label>
+              <select id="speed" class="field-select">
+                <option value="slow">Cham</option>
+                <option value="normal" selected>Binh thuong</option>
+                <option value="fast">Nhanh</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label">Kho hinh</label>
+              <select id="aspect" class="field-select">
+                <option value="doc">Doc 9:16</option>
+                <option value="ngang">Ngang 16:9</option>
+                <option value="vuong">Vuong 1:1</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label">Do phan giai</label>
+              <select id="resolution" class="field-select">
+                <option value="hd">HD 720p</option>
+                <option value="fhd" selected>FHD 1080p</option>
+                <option value="2k">2K 1440p</option>
+                <option value="4k">4K 2160p</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="separator"></div>
+
+          <!-- VOICE LIBRARY -->
+          <div class="card-header" style="margin-bottom:12px">
+            <div class="card-icon purple">&#x1F3A4;</div>
+            <span class="card-title">Voice Library</span>
+            <span class="card-sub" id="voiceCount"></span>
+          </div>
+
+          <div id="voiceLibrary" style="max-height:300px;overflow-y:auto;margin-bottom:4px">
+            <div class="voice-section">
+              <div class="voice-section-title">VieNeu TTS - Tieng Viet</div>
+              <div id="viVoices"></div>
+            </div>
+            <div class="voice-divider"></div>
+            <div class="voice-section">
+              <div class="voice-section-title">macOS say - English</div>
+              <div id="enVoices"></div>
+            </div>
+            <div class="voice-divider"></div>
+            <div class="voice-section">
+              <div class="voice-section-title">Voice yeu thich</div>
+              <div id="favVoices" style="min-height:20px;font-size:11px;color:var(--text-dim);padding:4px"></div>
+            </div>
+          </div>
+
+          <!-- CLONE -->
+          <details style="margin-top:8px">
+            <summary>Clone Voice moi</summary>
+            <div class="clone-area" id="cloneArea">
+              <div class="clone-icon">&#x1F399;&#xFE0F;</div>
+              <div class="clone-text" style="margin-bottom:6px">Tai file giong noi mau (WAV/MP3/M4A, 5-30s)</div>
+              <input type="file" id="cloneFileInput" accept=".wav,.mp3,.m4a" onchange="handleCloneFile(this)">
+              <button class="btn btn-glass" onclick="document.getElementById('cloneFileInput').click()">Chon file</button>
+              <div style="margin-top:8px">
+                <input type="text" id="cloneName" class="field-input" style="font-size:11px;padding:6px 10px" placeholder="Dat ten cho giong clone..."/>
+              </div>
+              <button class="btn btn-glass" onclick="uploadClone()" id="cloneBtn" style="margin-top:6px;width:100%">Tai len &amp; Clone</button>
+              <div id="cloneStatus" style="font-size:10px;color:var(--text-dim);margin-top:4px"></div>
+            </div>
+          </details>
+
+          <!-- MUSIC -->
+          <div class="separator"></div>
+          <div class="card-header" style="margin-bottom:6px">
+            <div class="card-icon green">&#x1F3B5;</div>
+            <span class="card-title">Am nhac</span>
+          </div>
+
+          <div class="field"><label class="field-label">Nhac nen</label>
+            <div class="music-list" id="musicList">
+              <div class="music-item selected" data-music="ambient" onclick="pickMusic(this)">
+                <span class="music-name">Ambient</span>
+                <div class="music-actions">
+                  <button class="voice-play-btn" onclick="event.stopPropagation();previewMusic('ambient')" title="Nghe thu">&#x25B6;</button>
+                </div>
+              </div>
+              <div class="music-item" data-music="corporate" onclick="pickMusic(this)">
+                <span class="music-name">Corporate</span>
+                <div class="music-actions">
+                  <button class="voice-play-btn" onclick="event.stopPropagation();previewMusic('corporate')" title="Nghe thu">&#x25B6;</button>
+                </div>
+              </div>
+              <div class="music-item" data-music="tech" onclick="pickMusic(this)">
+                <span class="music-name">Tech</span>
+                <div class="music-actions">
+                  <button class="voice-play-btn" onclick="event.stopPropagation();previewMusic('tech')" title="Nghe thu">&#x25B6;</button>
+                </div>
+              </div>
+              <div class="music-item" data-music="cinematic" onclick="pickMusic(this)">
+                <span class="music-name">Cinematic</span>
+                <div class="music-actions">
+                  <button class="voice-play-btn" onclick="event.stopPropagation();previewMusic('cinematic')" title="Nghe thu">&#x25B6;</button>
+                </div>
+              </div>
+              <div class="music-item" data-music="none" onclick="pickMusic(this)">
+                <span class="music-name">Khong nhac</span>
+                <div class="music-actions"></div>
+              </div>
+            </div>
+          </div>
+          <details style="margin-top:4px">
+            <summary>Tai nhac cua ban</summary>
+            <div class="clone-area" style="padding:10px">
+              <input type="file" id="musicFileInput" accept=".mp3,.wav,.m4a,.ogg" onchange="handleMusicUpload(this)">
+              <button class="btn btn-glass" onclick="document.getElementById('musicFileInput').click()">Chon file nhac</button>
+              <div id="musicUploadStatus" style="font-size:10px;color:var(--text-dim);margin-top:4px"></div>
+            </div>
+          </details>
+        </div>
+
+        <!-- GENERATE -->
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="submitBtn" onclick="generateVideo()" style="flex:1">Tao Video</button>
+        </div>
+
+        <div class="progress-box" id="progressBox">
+          <div class="progress-card">
+            <div class="progress-title">
+              <span class="spinner"></span>
+              <span id="progressTitle">Dang xu ly...</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
+            <div class="progress-text" id="progressText">Khoi tao...</div>
+          </div>
+        </div>
+
+        <div class="alert alert-error" id="errorMsg"></div>
+        <div class="alert alert-success" id="successMsg"></div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon pink">&#x1F4F9;</div>
+            <span class="card-title">Preview &amp; Output</span>
+          </div>
+          <div class="player-placeholder" id="playerPlaceholder">
+            <span>Video se hien thi o day</span>
+          </div>
+          <div id="videoPlayerContainer" style="display:none">
+            <video id="videoPlayer" controls playsinline style="width:100%;border-radius:var(--radius)"></video>
+          </div>
+          <div class="stats" id="stats" style="display:none">
+            <div class="stat"><div class="stat-value" id="statDur">---</div><div class="stat-label">Thoi luong</div></div>
+            <div class="stat"><div class="stat-value" id="statSize">---</div><div class="stat-label">Dung luong</div></div>
+            <div class="stat"><div class="stat-value" id="statWords">---</div><div class="stat-label">So tu</div></div>
+            <div class="stat"><div class="stat-value" id="statSpeed">---</div><div class="stat-label">Toc do</div></div>
+          </div>
+          <div id="videoActions" style="display:none;margin-top:10px">
+            <a id="downloadBtn" class="btn btn-primary" download style="text-decoration:none;font-size:11px">Tai MP4</a>
+            <button class="btn btn-glass" onclick="copyLink()" style="margin-top:6px;width:100%;font-size:11px">Sao chep link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>X-Video Studio v1.5 - Macmini M4 - VieNeu TTS - (c) 2026 AI World</footer>
+  </div>
+
+  <audio id="previewAudio" style="display:none" preload="auto"></audio>
+
+  <script>
+    let pollId, jobId;
+    let voicesData = [];
+    let favVoices = JSON.parse(localStorage.getItem('xvideo_fav_voices') || '[]');
+    let selectedVoice = 'female_south';
+    let selectedMusic = 'ambient';
+    let cloneFileData = null;
+
+    document.addEventListener('DOMContentLoaded', () => { loadVoices(); });
+
+    async function loadVoices(){
+      try{
+        const r = await fetch('/api/voices');
+        const d = await r.json();
+        voicesData = d.voices || [];
+        renderVoices();
+        document.getElementById('voiceCount').textContent = voicesData.length+' voices';
+      }catch(e){ console.error('Voice load fail:',e); }
+    }
+
+    function renderVoices(){
+      const viEl = document.getElementById('viVoices');
+      const enEl = document.getElementById('enVoices');
+      const favEl = document.getElementById('favVoices');
+      viEl.innerHTML = ''; enEl.innerHTML = '';
+      const favSet = new Set(favVoices);
+
+      voicesData.forEach(v => {
+        const isFav = favSet.has(v.id);
+        const isSel = v.id === selectedVoice;
+        const el = document.createElement('div');
+        el.className = 'voice-item' + (isSel?' selected':'');
+        el.innerHTML = templateVoice(v, isFav);
+        if(v.engine === 'vieneu' || v.lang === 'vi') viEl.appendChild(el);
+        else enEl.appendChild(el);
+      });
+
+      const favList = voicesData.filter(v => favSet.has(v.id));
+      if(favList.length){
+        favEl.innerHTML = '';
+        favList.forEach(v => {
+          const el = document.createElement('div');
+          el.className = 'voice-item' + (v.id===selectedVoice?' selected':'');
+          el.innerHTML = templateVoice(v, true);
+          favEl.appendChild(el);
+        });
+      } else {
+        favEl.innerHTML = '<span style="font-size:10px">Chua co voice yeu thich. Bam heart de them.</span>';
+      }
+    }
+
+    function templateVoice(v, isFav){
+      return '<div class="voice-avatar">'+v.emoji+'</div>'
+        + '<div class="voice-info" onclick="selectVoice(\\''+v.id+'\\')" style="cursor:pointer">'
+        + '<div class="voice-name">'+(v.name||v.id)+'</div>'
+        + '<div class="voice-meta">'+v.engine+' - '+(v.lang||'').toUpperCase()+'</div></div>'
+        + '<div class="voice-actions">'
+        + '<button class="voice-play-btn" onclick="event.stopPropagation();previewVoiceSimple(\\''+v.id+'\\')" title="Nghe thu">&#x25B6;</button>'
+        + '<button class="voice-fav-btn '+(isFav?'fav':'')+'" onclick="event.stopPropagation();toggleFav(\\''+v.id+'\\')" title="Yeu thich">'+(isFav?'&#x2764;':'&#x2661;')+'</button>'
+        + '</div>';
+    }
+
+    function selectVoice(id){ selectedVoice = id; renderVoices(); }
+    function toggleFav(id){
+      const idx = favVoices.indexOf(id);
+      if(idx >= 0) favVoices.splice(idx,1); else favVoices.push(id);
+      localStorage.setItem('xvideo_fav_voices', JSON.stringify(favVoices));
+      renderVoices();
+    }
+    function previewVoiceSimple(voiceId){
+      const audio = document.getElementById('previewAudio');
+      const text = (voiceId.startsWith('female')||voiceId.startsWith('male'))
+        ? 'Xin chao, day la giong doc tieng Viet tu X Video Studio. Ban co the chon giong nay cho video cua minh.'
+        : 'Hello, this is a voice preview from X Video Studio. You can use this voice for your video.';
+      const lang = (voiceId.startsWith('female')||voiceId.startsWith('male'))?'vi':'en';
+      audio.src = '/api/preview-voice?voice='+encodeURIComponent(voiceId)+'&text='+encodeURIComponent(text)+'&language='+lang+'&t='+Date.now();
+      audio.load(); audio.play().catch(function(){});
+    }
+    function pickMusic(el){
+      document.querySelectorAll('#musicList .music-item').forEach(function(e){e.classList.remove('selected');});
+      el.classList.add('selected');
+      selectedMusic = el.dataset.music;
+    }
+    function previewMusic(style){
+      document.getElementById('previewAudio').src = '/api/preview-music?style='+style+'&t='+Date.now();
+      document.getElementById('previewAudio').load();
+      document.getElementById('previewAudio').play().catch(function(){});
+    }
+
+    function fetchUrl(){
+      var url = document.getElementById('url').value.trim();
+      if(!url) return showError('Nhap URL bai viet');
+      var btn = document.getElementById('fetchBtn');
+      btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+      fetch('/api/prefetch?url='+encodeURIComponent(url))
+        .then(function(r){return r.json();})
+        .then(function(d){
+          btn.innerHTML = 'Lay'; btn.disabled = false;
+          if(d.error){ showError(d.error); return; }
+          var preview = document.getElementById('previewContent');
+          document.getElementById('previewTitle').textContent = d.title || '';
+          document.getElementById('previewCat').textContent = d.category || 'Cong nghe';
+          document.getElementById('previewDate').textContent = d.date || '';
+          document.getElementById('previewSource').textContent = d.source || '';
+          document.getElementById('previewBody').textContent = (d.excerpt||d.content||'').substring(0,800);
+          preview.classList.add('visible');
+          var contentForScript = (d.content && d.content.length > 200) ? d.content : (d.excerpt||'');
+          document.getElementById('mainContent').value = contentForScript || d.title || '';
+          if(d.title) document.getElementById('hook').value = 'Tin nong: ' + d.title.substring(0,60);
+          showSuccess('Da lay noi dung. Kiem tra script o phan "Kich ban video"');
+        })
+        .catch(function(e){
+          btn.innerHTML = 'Lay'; btn.disabled = false;
+          showError('Loi: '+e.message);
+        });
+    }
+
+    function setVal(field, el, text){
+      el.parentElement.querySelectorAll('.chip').forEach(function(c){c.classList.remove('selected');});
+      el.classList.add('selected');
+      document.getElementById(field).value = text;
+    }
+
+    function generateVideo(){
+      var url = document.getElementById('url').value.trim();
+      var text = document.getElementById('mainContent').value.trim();
+      if(!url && !text) return showError('Can URL hoac noi dung');
+      hideAlerts();
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Dang tao tren Macmini M4...';
+      document.getElementById('progressBox').classList.add('visible');
+      var payload = {
+        url: url || undefined,
+        text: text || undefined,
+        hook: document.getElementById('hook').value.trim(),
+        cta: document.getElementById('cta').value.trim(),
+        voice: selectedVoice,
+        speed: document.getElementById('speed').value,
+        style: document.getElementById('style').value,
+        music: selectedMusic,
+        aspect: document.getElementById('aspect').value,
+        resolution: document.getElementById('resolution').value,
+        language: (selectedVoice.startsWith('female')||selectedVoice.startsWith('male'))?'vi':'en'
+      };
+      fetch('/api/generate', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      }).then(function(r){return r.json();}).then(function(d){
+        jobId = d.job_id; pollJob();
+      }).catch(function(e){
+        btn.disabled = false; btn.innerHTML = 'Tao Video';
+        showError('Loi: '+e.message);
+      });
+    }
+
+    function pollJob(){
+      clearInterval(pollId);
+      pollId = setInterval(function(){
+        fetch('/api/jobs/'+jobId).then(function(r){return r.json();}).then(function(j){
+          if(j.status === 'queued' || j.status === 'processing'){
+            setProgress(j.progress || 5);
+          } else if(j.status === 'done'){
+            clearInterval(pollId); setProgress(100); showVideo(j);
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = 'Tao Video';
+            document.getElementById('progressBox').classList.remove('visible');
+            showSuccess('Video hoan tat!');
+          } else if(j.status === 'error'){
+            clearInterval(pollId);
+            showError(j.error || 'Loi khong xac dinh');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = 'Tao Video';
+            document.getElementById('progressBox').classList.remove('visible');
+          }
+        });
+      }, 1000);
+    }
+
+    function setProgress(p){
+      document.getElementById('progressFill').style.width = p+'%';
+      var msgs = ['Khoi tao...','Dang tai noi dung...','Tong hop giong doc...','Them nhac nen...','Render video...','Hoan tat!'];
+      document.getElementById('progressText').textContent = msgs[Math.min(5,Math.floor(p/20))];
+    }
+
+    function showVideo(job){
+      document.getElementById('playerPlaceholder').style.display = 'none';
+      var container = document.getElementById('videoPlayerContainer');
+      container.style.display = 'block';
+      var vid = document.getElementById('videoPlayer');
+      vid.src = '/output/'+(job.video_path||''); vid.load();
+      document.getElementById('stats').style.display = 'grid';
+      document.getElementById('statDur').textContent = (job.duration||'---')+'s';
+      document.getElementById('statSize').textContent = ((job.size_kb||0)/1024).toFixed(1)+'MB';
+      document.getElementById('statWords').textContent = job.word_count||'---';
+      document.getElementById('statSpeed').textContent = (job.tts_rate||'---');
+      document.getElementById('videoActions').style.display = 'block';
+      document.getElementById('downloadBtn').href = '/output/'+(job.video_path||'');
+    }
+
+    function copyLink(){
+      var vid = document.getElementById('videoPlayer');
+      var fn = vid.src.split('/').pop();
+      if(navigator.clipboard) navigator.clipboard.writeText(window.location.origin+'/output/'+fn);
+    }
+
+    function handleCloneFile(input){
+      if(input.files && input.files[0]){
+        cloneFileData = input.files[0];
+        document.getElementById('cloneStatus').textContent = 'File: '+cloneFileData.name+' ('+Math.round(cloneFileData.size/1024)+'KB)';
+      }
+    }
+
+    async function uploadClone(){
+      if(!cloneFileData){ document.getElementById('cloneStatus').textContent = 'Chon file giong mau truoc'; return; }
+      var name = document.getElementById('cloneName').value.trim() || 'My Voice';
+      var btn = document.getElementById('cloneBtn');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Dang clone...';
+      var formData = new FormData();
+      formData.append('file', cloneFileData);
+      formData.append('name', name);
+      try{
+        var r = await fetch('/api/clone-voice', { method:'POST', body:formData });
+        var d = await r.json();
+        if(d.error) throw new Error(d.error);
+        document.getElementById('cloneStatus').textContent = 'Clone thanh cong: "'+name+'"';
+        btn.disabled = false; btn.innerHTML = 'Tai len & Clone';
+        cloneFileData = null; document.getElementById('cloneName').value = '';
+        loadVoices();
+      }catch(e){
+        document.getElementById('cloneStatus').textContent = 'Loi: '+e.message;
+        btn.disabled = false; btn.innerHTML = 'Tai len & Clone';
+      }
+    }
+
+    async function handleMusicUpload(input){
+      if(!input.files || !input.files[0]) return;
+      var status = document.getElementById('musicUploadStatus');
+      var file = input.files[0];
+      status.textContent = 'Dang tai...';
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name.replace(/\.[^/.]+$/, ''));
+      try{
+        var r = await fetch('/api/upload-music', { method:'POST', body:formData });
+        var d = await r.json();
+        if(d.error) throw new Error(d.error);
+        status.textContent = 'Da tai: '+d.name;
+        var list = document.getElementById('musicList');
+        var item = document.createElement('div');
+        item.className = 'music-item';
+        item.dataset.music = 'custom_'+d.id;
+        item.onclick = function(){ pickMusic(this); };
+        item.innerHTML = '<span class="music-name">'+d.name+'</span><div class="music-actions"><button class="voice-play-btn" onclick="event.stopPropagation();playCustomMusic(\\''+d.path+'\\')">&#x25B6;</button></div>';
+        list.insertBefore(item, list.lastElementChild);
+      }catch(e){ status.textContent = 'Loi: '+e.message; }
+    }
+
+    function playCustomMusic(path){
+      document.getElementById('previewAudio').src = '/uploads/'+path+'?t='+Date.now();
+      document.getElementById('previewAudio').load();
+      document.getElementById('previewAudio').play().catch(function(){});
+    }
+
+    function showError(m){
+      var el = document.getElementById('errorMsg');
+      el.textContent = m;
+      el.classList.add('visible');
+    }
+    function showSuccess(m){
+      var el = document.getElementById('successMsg');
+      el.textContent = m;
+      el.classList.add('visible');
+      setTimeout(function(){el.classList.remove('visible');}, 4000);
+    }
+    function hideAlerts(){
+      document.getElementById('errorMsg').classList.remove('visible');
+      document.getElementById('successMsg').classList.remove('visible');
+    }
+  </script>
+</body>
+</html>

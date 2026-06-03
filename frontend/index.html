@@ -1,473 +1,493 @@
 <!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>X-Video Studio — AI World</title>
-  <link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
-  <style>
-    :root {
-      --indigo-400: #818cf8; --indigo-500: #6366f1; --indigo-600: #4f46e5;
-      --violet-400: #a78bfa; --violet-500: #8b5cf6;
-      --cyan-400: #22d3ee; --cyan-500: #06b6d4;
-      --bg-deep: #030712;
-      --bg-surface: rgba(15, 23, 42, 0.78);
-      --bg-card: rgba(23, 37, 64, 0.58);
-      --border-glass: rgba(99, 102, 241, 0.10);
-      --border-active: rgba(139, 92, 246, 0.35);
-      --text-primary: #e2e8f0;
-      --text-secondary: rgba(148, 163, 184, 0.88);
-      --text-dim: rgba(148, 163, 184, 0.42);
-      --success: #22c55e; --error: #ef4444;
-      --radius: 16px; --radius-sm: 12px;
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>X-Video Studio</title>
+<link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "tertiary":"#00daf3","primary-fixed-dim":"#44d8f1","error":"#ffb4ab","secondary-container":"#592aa9","surface-variant":"#34343a","on-primary-container":"#004650","on-error":"#690005","on-surface":"#e3e1e9","on-tertiary-fixed":"#001f24","on-tertiary":"#00363d","outline-variant":"#3c494c","inverse-surface":"#e3e1e9","on-secondary":"#3f008d","on-primary-fixed":"#001f25","surface":"#121318","surface-container-high":"#292a2f","on-secondary-container":"#c7aaff","on-secondary-fixed":"#250059","secondary":"#d3bbff","on-primary-fixed-variant":"#004e59","surface-container-highest":"#34343a","on-tertiary-container":"#00464f","on-primary":"#00363e","primary-fixed":"#a1efff","tertiary-container":"#00bcd2","primary-container":"#00bcd4","surface-dim":"#121318","on-tertiary-fixed-variant":"#004f58","tertiary-fixed":"#9cf0ff","error-container":"#93000a","secondary-fixed-dim":"#d3bbff","surface-bright":"#38393f","inverse-on-surface":"#2f3036","surface-container-lowest":"#0d0e13","secondary-fixed":"#ebddff","outline":"#869396","on-background":"#e3e1e9","primary":"#44d8f1","on-surface-variant":"#bbc9cc","inverse-primary":"#006876","tertiary-fixed-dim":"#00daf3","on-error-container":"#ffdad6","on-secondary-fixed-variant":"#5727a6","background":"#121318","surface-tint":"#44d8f1","surface-container":"#1e1f25","surface-container-low":"#1a1b21"
+        },
+        borderRadius: {"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},
+        spacing: {"lg":"48px","margin-mobile":"16px","sm":"12px","xs":"4px","margin-desktop":"48px","md":"24px","gutter":"24px","base":"8px","xl":"80px"},
+        fontFamily: {"body-lg":["Inter"],"label-md":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"code-sm":["Inter"],"display-lg-mobile":["Inter"],"headline-lg":["Inter"],"display-lg":["Inter"]},
+        fontSize: {
+          "body-lg":["18px",{lineHeight:"1.6",fontWeight:"400"}],
+          "label-md":["14px",{lineHeight:"1.2",letterSpacing:"0.05em",fontWeight:"500"}],
+          "headline-md":["24px",{lineHeight:"1.3",fontWeight:"600"}],
+          "body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+          "code-sm":["13px",{lineHeight:"1.4",fontWeight:"400"}],
+          "display-lg-mobile":["36px",{lineHeight:"1.2",letterSpacing:"-0.02em",fontWeight:"700"}],
+          "headline-lg":["32px",{lineHeight:"1.2",fontWeight:"600"}],
+          "display-lg":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"700"}]
+        }
+      }
     }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden;
+  }
+</script>
+<style>
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-ExtraBold.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap}
+
+    body { background-color: #121318; color: #e3e1e9; overflow-x: hidden; }
+
+    .glass-panel {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid transparent;
+      border-image: linear-gradient(to bottom, rgba(255,255,255,0.2), rgba(0,188,212,0.3)) 1;
     }
-    .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
-      background:radial-gradient(ellipse 120% 80% at 10% 0%,rgba(99,102,241,.07),transparent 55%),
-      radial-gradient(ellipse 100% 70% at 85% 20%,rgba(139,92,246,.05),transparent 50%),
-      radial-gradient(ellipse 80% 60% at 50% 80%,rgba(6,182,212,.04),transparent 45%),
-      radial-gradient(ellipse 60% 40% at 30% 50%,rgba(99,102,241,.04),transparent 40%);}
-    .orb{position:fixed;border-radius:50%;filter:blur(130px);opacity:.06;pointer-events:none;z-index:0}
-    .orb-1{width:600px;height:600px;top:-120px;left:-120px;background:var(--indigo-500);animation:aurora 14s ease-in-out infinite}
-    .orb-2{width:420px;height:420px;bottom:5%;right:-60px;background:var(--violet-500);animation:aurora 17s ease-in-out infinite reverse}
-    .orb-3{width:320px;height:320px;top:40%;left:45%;background:var(--cyan-500);animation:aurora 20s ease-in-out infinite}
-    @keyframes aurora{0%,100%{transform:translate(0,0)scale(1)}33%{transform:translate(50px,-40px)scale(1.1)}66%{transform:translate(-30px,30px)scale(.94)}}
-
-    .app{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:24px 20px}
-
-    /* HEADER — glass bar */
-    .header{position:sticky;top:10px;z-index:10;margin-bottom:20px}
-    .header-bar{
-      display:flex;align-items:center;gap:14px;padding:12px 24px;
-      background:var(--bg-surface);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-      border:1px solid var(--border-glass);border-radius:var(--radius);
+    .glass-card-inner-glow { position: relative; }
+    .glass-card-inner-glow::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      z-index: 10; pointer-events: none;
     }
-    .header-logo-img{width:48px;height:48px;border-radius:14px;object-fit:cover}
-    .header-title{font-size:22px;font-weight:800;color:var(--violet-400);letter-spacing:-.5px}
-    .header-x{color:var(--indigo-400);font-size:26px}
-    .header-badge{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600;margin-left:auto}
-    .badge-ver{background:rgba(99,102,241,.10);color:var(--indigo-400);border:1px solid rgba(99,102,241,.15)}
-    .badge-gpu{background:rgba(34,211,238,.06);color:var(--cyan-400);border:1px solid rgba(34,211,238,.12)}
+    .neon-glow-primary { box-shadow: 0 0 15px rgba(0,188,212,0.5); }
 
-    /* LAYOUT */
-    .main-grid{display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start}
-    @media(max-width:1100px){.main-grid{grid-template-columns:1fr}}
+    .aurora-orb-1 { position: fixed; top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(0,188,212,0.15) 0%, rgba(0,0,0,0) 70%); z-index: -1; pointer-events: none; }
+    .aurora-orb-2 { position: fixed; bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(103,58,183,0.15) 0%, rgba(0,0,0,0) 70%); z-index: -1; pointer-events: none; }
 
-    /* GLASS CARD */
-    .card{
-      background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-      border:1px solid var(--border-glass);border-radius:var(--radius);padding:22px 24px;margin-bottom:14px;
-      transition:all .2s ease;
+    /* Preview area */
+    .player-placeholder {
+      width: 100%; max-height: 65vh; aspect-ratio: 9/16;
+      background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: #bbc9cc; font-size: 12px; flex-direction: column; gap: 6px;
     }
-    .card:hover{border-color:rgba(139,92,246,.15)}
-    .card-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-    .card-title{font-size:14px;font-weight:600;letter-spacing:-.2px}
+    video { width: 100%; max-height: 100%; border-radius: 12px; display: block; }
 
-    /* FORM */
-    .field{margin-bottom:14px}
-    .field-label{display:block;font-size:11px;font-weight:600;margin-bottom:5px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
-    .field-input,.field-select,.field-textarea{
-      width:100%;padding:10px 14px;background:rgba(15,23,42,.55);
-      border:1px solid var(--border-glass);border-radius:var(--radius-sm);
-      color:var(--text-primary);font-size:13px;font-family:inherit;transition:all .2s;
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 13px; font-weight: 800; color: #44d8f1; }
+    .stat-label { font-size: 9px; color: #bbc9cc; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(148,163,184,0.15); border-top-color: #44d8f1; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Shine animation on CTA */
+    @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+
+    /* Help modal */
+    .help-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
+    .help-overlay.on { display: flex; }
+
+    /* Tab content toggle */
+    
+
+    /* Form inputs */
+    .glass-input {
+      width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      color: #e3e1e9; font-size: 13px; font-family: Inter, sans-serif;
+      outline: none; transition: border 0.2s;
     }
-    .field-input:focus,.field-select:focus,.field-textarea:focus{outline:none;border-color:var(--border-active);box-shadow:0 0 0 3px rgba(99,102,241,.08)}
-    .field-textarea{min-height:80px;resize:vertical}
-    .field-select{cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+    .glass-input:focus { border-color: #44d8f1; box-shadow: 0 0 8px rgba(0,188,212,0.15); }
+    .glass-input::placeholder { color: #869396; }
 
-    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    @media(max-width:768px){.row-2,.row-3{grid-template-columns:1fr}}
-
-    /* CHIPS */
-    .chips{display:flex;gap:6px;flex-wrap:wrap}
-    .chip{padding:7px 14px;border-radius:20px;border:1px solid var(--border-glass);background:rgba(15,23,42,.35);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--text-secondary)}
-    .chip:hover{border-color:var(--border-active);color:var(--text-primary)}
-    .chip.selected{border-color:var(--indigo-500);background:rgba(99,102,241,.08);color:var(--indigo-400);box-shadow:0 0 18px rgba(99,102,241,.10)}
-    .chip-icon{font-size:13px}
-
-    /* BUTTONS */
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 22px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s}
-    .btn-generate{width:100%;background:linear-gradient(135deg,var(--indigo-500),var(--violet-500));color:#fff;box-shadow:0 4px 28px rgba(99,102,241,.22)}
-    .btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(99,102,241,.3)}
-    .btn-generate:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
-    .btn-glass{padding:9px 16px;font-size:12px;background:rgba(15,23,42,.5);border:1px solid var(--border-glass);color:var(--text-primary)}
-    .btn-glass:hover{border-color:var(--border-active);background:rgba(99,102,241,.06)}
-    .btn-sm{padding:6px 12px;font-size:11px;border-radius:8px}
-    .btn-play{padding:3px 8px;font-size:11px;border-radius:6px}
-
-    /* PREVIEW CARD — content analysis */
-    .preview-content{background:rgba(15,23,42,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:16px;margin:12px 0;display:none}
-    .preview-content.show{display:block}
-    .preview-title{font-size:15px;font-weight:700;color:var(--indigo-400);margin-bottom:6px}
-    .preview-meta{font-size:11px;color:var(--text-dim);margin-bottom:12px}
-    .preview-body{font-size:13px;color:var(--text-secondary);line-height:1.5;max-height:200px;overflow-y:auto}
-
-    /* PROGRESS */
-    .progress-box{display:none}
-    .progress-box.show{display:block}
-    .progress-bar{width:100%;height:5px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden;margin:12px 0}
-    .progress-fill{height:100%;background:linear-gradient(90deg,var(--indigo-500),var(--violet-500),var(--cyan-400));border-radius:3px;transition:width .4s}
-    .progress-msg{font-size:12px;color:var(--text-dim);text-align:center}
-
-    /* VOICE CARD */
-    .voice-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.02);font-size:12px}
-    .voice-item:last-child{border:none}
-    .voice-name{font-weight:600}
-    .voice-lang{font-size:10px;color:var(--text-dim);margin-left:8px}
-    .voice-actions{display:flex;gap:4px}
-    .audio-wave{display:flex;align-items:center;gap:2px;height:14px}
-    .audio-wave span{width:2px;background:var(--indigo-400);border-radius:1px;animation:wave .8s ease-in-out infinite;animation-delay:calc(var(--i) * .1s)}
-    @keyframes wave{0%,100%{height:4px}50%{height:14px}}
-
-    /* PLAYER */
-    .player-placeholder{
-      width:100%;aspect-ratio:9/16;max-height:640px;
-      background:rgba(15,23,42,.45);border:2px dashed var(--border-glass);border-radius:var(--radius);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:10px;color:var(--text-dim);font-size:12px
+    select.glass-input { -webkit-appearance: none; padding-right: 28px; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2344d8f1' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
     }
-    #videoPlayerContainer video{width:100%;border-radius:var(--radius)}
-    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-    .stat{background:rgba(15,23,42,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:10px;text-align:center}
-    .stat-val{font-size:19px;font-weight:700;color:var(--indigo-400)}
-    .stat-lbl{font-size:10px;color:var(--text-dim);margin-top:2px}
 
-    .alert{display:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;margin:10px 0}
-    .alert.show{display:block}
-    .alert-error{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);color:#fca5a5}
-    .alert-success{background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.12);color:#86efac}
+    textarea.glass-input { resize: none; min-height: 40px; line-height: 1.4; }
 
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--indigo-400);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+    details summary { cursor: pointer; color: #44d8f1; font-size: 12px; font-weight: 600; }
+    details summary::-webkit-details-marker { color: #44d8f1; }
 
-    footer{text-align:center;padding:24px 0;color:var(--text-dim);font-size:10px;opacity:.5}
+    .select-list { max-height: 80px; overflow-y: auto; }
+    .select-list::-webkit-scrollbar { width: 2px; }
+    .select-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
-    /* Scrollbar */
-    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-glass);border-radius:3px}
-  </style>
+    .select-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #bbc9cc; transition: all 0.1s; }
+    .select-item:hover { background: rgba(255,255,255,0.04); color: #e3e1e9; }
+    .select-item.on { background: linear-gradient(135deg, rgba(0,188,212,0.12), rgba(68,216,241,0.06)); border: 1px solid rgba(68,216,241,0.15); color: #e3e1e9; }
+    .select-item .play-btn { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #869396; font-size: 7px; flex-shrink: 0; }
+    .select-item .play-btn:hover { border-color: rgba(0,188,212,0.25); color: #44d8f1; }
+
+    .alert { border-radius: 8px; padding: 6px 10px; font-size: 11px; display: none; margin: 4px 0; }
+    .alert.on { display: flex; align-items: center; gap: 6px; }
+    .alert-error { background: rgba(255,180,171,0.08); color: #ffb4ab; border: 1px solid rgba(255,180,171,0.18); }
+    .alert-ok { background: rgba(68,216,241,0.06); color: #44d8f1; border: 1px solid rgba(68,216,241,0.15); }
+
+    .btn-shine { position: relative; overflow: hidden; }
+    .btn-shine::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.3), rgba(255,255,255,0)); transform: skewX(-25deg); animation: shine 2.1s infinite; }
+
+    .progress-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(68,216,241,0.08); border-radius: 8px; padding: 8px; display: none; }
+    .progress-box.on { display: block; margin-top: 8px; }
+    .progress-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.03); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #00bcd4, #44d8f1); transition: width 0.3s; }
+    .progress-text { font-size: 10px; color: #bbc9cc; text-align: center; margin-top: 4px; }
+</style>
 </head>
-<body>
-  <div class="aurora-bg"></div><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+<body class="antialiased min-h-screen flex selection:bg-primary selection:text-on-primary">
+<div class="aurora-orb-1"></div>
+<div class="aurora-orb-2"></div>
+<audio id="pa" style="display:none"></audio>
 
-  <div class="app">
-    <!-- HEADER WITH LOGO -->
-    <div class="header">
-      <div class="header-bar">
-        <img src="/static/logo-xvideo.png" class="header-logo-img" alt="X-Video"/>
-        <span class="header-title"><span class="header-x">X</span>-Video Studio</span>
-        <span class="header-badge badge-ver">v1.3</span>
-        <span class="header-badge badge-gpu" style="margin-left:4px">M4 GPU</span>
-      </div>
-    </div>
+<!-- SideNavBar -->
+<nav aria-label="Sidebar Navigation" class="hidden md:flex flex-col h-screen w-64 border-r border-white/20 bg-white/5 dark:bg-white/5 backdrop-blur-[24px] py-md px-sm fixed left-0 top-0 z-40">
+<div class="mb-lg px-xs">
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight flex items-center gap-sm"><img src="/static/logo-xvideo.png" class="w-8 h-8 rounded-lg object-contain" alt="X">X-Video</h1>
+<p class="font-label-md text-label-md text-on-surface-variant mt-xs">Automation Suite</p>
+</div>
+<ul class="flex flex-col gap-xs flex-1">
+<li>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-primary font-bold border-r-2 border-primary hover:bg-white/10 transition-colors duration-200" href="#">
+🎬<span class="font-label-md text-label-md">Tạo Video</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors duration-200" href="#" onclick="toggleHelp();return false">
+📖<span class="font-label-md text-label-md">Hướng dẫn</span>
+</a>
 
-    <div class="main-grid">
-      <!-- === LEFT: INPUT === -->
-      <div>
-        <!-- NGUỒN -->
-        <div class="card">
-          <div class="card-header"><span class="card-title">📰 Nguồn nội dung</span></div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input type="text" id="url" class="field-input" style="flex:1" placeholder="https://192.168.1.9:8080/vi/slug-bai-viet/"/>
-            <button class="btn btn-glass" onclick="fetchUrl()" id="fetchBtn">📥 Lấy nội dung</button>
-          </div>
-          <textarea id="text" class="field-textarea" placeholder="Hoặc paste nội dung trực tiếp tại đây..." rows="2" style="min-height:60px"></textarea>
-        </div>
+<li class="side-nav-item"><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors duration-200" href="#" onclick="window.location.href='/voice-library.html'">🎤<span class="font-label-md text-label-md">Voice Library</span></a></li>
+</li>
+</ul>
+<div class="mt-auto">
+<div class="mt-sm flex items-center gap-sm px-sm py-sm border-t border-white/10">
+<div class="flex flex-col gap-1">
+<span class="font-code-sm text-code-sm text-on-surface-variant text-[10px]">v1.5.8</span>
+<div class="flex gap-1"><span class="px-2 py-0.5 rounded-full text-[9px] border border-white/10 text-on-surface-variant">AI World</span><span class="px-2 py-0.5 rounded-full text-[9px] bg-primary/10 border border-primary/30 text-primary">GPU</span></div>
+</div>
+</div>
+</div>
+</nav>
 
-        <!-- NỘI DUNG PHÂN TÍCH + EDIT -->
-        <div class="card">
-          <div class="card-header"><span class="card-title">📝 Nội dung video</span><span class="header-badge badge-ver" style="font-size:10px;margin-left:auto">Edit & Preview</span></div>
-          
-          <div class="preview-content" id="previewContent">
-            <div class="preview-title" id="previewTitle">—</div>
-            <div class="preview-meta" id="previewMeta">—</div>
-            <div class="preview-body" id="previewBody">—</div>
-          </div>
+<!-- Main Content Area -->
+<div class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen relative z-10">
 
-          <div class="field"><label class="field-label">🎯 Hook mở đầu (3s)</label>
-            <div class="chips" style="margin-bottom:6px">
-              <span class="chip chip-icon" onclick="setVal('hook',this,'🔥 Tin nóng:')">🔥 Tin nóng</span>
-              <span class="chip chip-icon" onclick="setVal('hook',this,'Bạn có biết?')">🤔 Bạn có biết</span>
-              <span class="chip chip-icon" onclick="setVal('hook',this,'Đột phá mới:')">🚀 Đột phá</span>
-              <span class="chip chip-icon" onclick="setVal('hook',this,'Cảnh báo:')">⚠️ Cảnh báo</span>
-            </div>
-            <textarea id="hook" class="field-textarea" rows="1" style="min-height:38px" placeholder="Hook thu hút trong 3s đầu...">🔥 Tin nóng:</textarea>
-          </div>
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-md py-sm h-16 border-b border-white/20 bg-white/5 dark:bg-white/5 backdrop-blur-[24px] sticky top-0 z-30 shadow-none">
+<div class="flex items-center gap-md">
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors">☰</button>
+<div class="flex gap-2">
+  <span class="px-3 py-1.5 rounded text-[12px] font-semibold text-on-surface-variant opacity-60">📰</span>
+  <button onclick="switchTab(this,'voiceTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">🎤 Giọng</button>
+  <button onclick="switchTab(this,'musicTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">🎵 Nhạc</button>
+  <button onclick="switchTab(this,'cfgTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">⚙️ Cấu hình</button>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button onclick="toggleHelp()" class="text-on-surface-variant hover:text-primary transition-colors text-sm">❓</button>
+</div>
+</header>
 
-          <div class="field">
-            <label class="field-label">📝 Nội dung chính</label>
-            <textarea id="mainContent" class="field-textarea" rows="3" placeholder="Nội dung bài viết sẽ hiển thị ở đây sau khi lấy URL. Bạn có thể chỉnh sửa tự do."></textarea>
-          </div>
+<!-- Canvas -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto">
+<!-- Hero / Input Section -->
+<section class="max-w-4xl mx-auto mt-lg mb-xl text-center">
+<h2 class="font-display-lg-mobile md:font-display-lg text-on-surface mb-sm">Generate Your Vision</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-lg max-w-2xl mx-auto">Paste a URL or script to instantly generate a high-quality video using our advanced AI studio.</p>
 
-          <div class="field"><label class="field-label">📢 CTA cuối video</label>
-            <div class="chips" style="margin-bottom:6px">
-              <span class="chip chip-icon" onclick="setVal('cta',this,'👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!')">👍 Like</span>
-              <span class="chip chip-icon" onclick="setVal('cta',this,'📌 Truy cập AI World để đọc thêm!')">📌 AI World</span>
-              <span class="chip chip-icon" onclick="setVal('cta',this,'💬 Bạn nghĩ sao? Comment dưới đây!')">💬 Comment</span>
-              <span class="chip chip-icon" onclick="setVal('cta',this,'🔔 Đăng ký để không bỏ lỡ tin mới!')">🔔 Đăng ký</span>
-            </div>
-            <textarea id="cta" class="field-textarea" rows="1" style="min-height:38px" placeholder="Lời kêu gọi hành động...">👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!</textarea>
-          </div>
-        </div>
-
-        <!-- PHONG CÁCH -->
-        <div class="card">
-          <div class="card-header"><span class="card-title">🎨 Phong cách & Voice</span></div>
-          
-          <div class="field"><label class="field-label">Phong cách viết</label>
-            <div class="chips" id="styleChips">
-              <span class="chip selected" data-style="news" onclick="pickStyle(this)">📺 Bản tin</span>
-              <span class="chip" data-style="reportage" onclick="pickStyle(this)">🎬 Phóng sự</span>
-              <span class="chip" data-style="analysis" onclick="pickStyle(this)">📊 Phân tích</span>
-              <span class="chip" data-style="story" onclick="pickStyle(this)">📖 Kể chuyện</span>
-              <span class="chip" data-style="hot" onclick="pickStyle(this)">🔥 Tin nóng</span>
-              <span class="chip" data-style="tutorial" onclick="pickStyle(this)">🎓 Hướng dẫn</span>
-            </div>
-          </div>
-
-          <div class="field"><label class="field-label">🎤 Giọng đọc / Voice</label>
-            <select id="voice" class="field-select" onchange="updateVoiceDesc()">
-              <optgroup label="🇻🇳 Tiếng Việt — VieNeu TTS (Macmini M4)">
-                <option value="female_south">🇻🇳 Nữ Nam Bộ (mặc định)</option>
-                <option value="female_north">🇻🇳 Nữ Bắc Bộ</option>
-                <option value="male_south">🇻🇳 Nam Nam Bộ</option>
-                <option value="male_north">🇻🇳 Nam Bắc Bộ</option>
-              </optgroup>
-              <optgroup label="🇺🇸 English — macOS say">
-                <option value="Samantha">🇺🇸 Samantha (Mỹ)</option>
-                <option value="Karen">🇦🇺 Karen (Úc)</option>
-                <option value="Daniel">🇬🇧 Daniel (Anh)</option>
-              </optgroup>
-            </select>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-              <button class="btn btn-glass btn-sm" onclick="previewVoice()" id="previewVoiceBtn">
-                🔈 Nghe thử giọng đọc
-              </button>
-              <span style="font-size:10px;color:var(--text-dim)" id="voiceStatus"></span>
-            </div>
-            <audio id="voicePreviewAudio" style="display:none" controls></audio>
-          </div>
-
-          <div class="row-3">
-            <div class="field"><label class="field-label">Tốc độ</label>
-              <select id="speed" class="field-select">
-                <option value="slow">🐢 Chậm</option>
-                <option value="normal" selected>▶ Bình thường</option>
-                <option value="fast">⚡ Nhanh</option>
-              </select>
-            </div>
-            <div class="field"><label class="field-label">Âm nhạc</label>
-              <select id="music" class="field-select">
-                <option value="ambient">🎵 Ambient</option>
-                <option value="corporate">🏢 Corporate</option>
-                <option value="tech">💻 Tech</option>
-                <option value="cinematic">🎬 Cinematic</option>
-                <option value="none">🔇 Không nhạc</option>
-              </select>
-            </div>
-            <div class="field"><label class="field-label">Khổ</label>
-              <select id="aspect" class="field-select">
-                <option value="doc">📱 Dọc 9:16</option>
-                <option value="ngang">🖥 Ngang 16:9</option>
-                <option value="vuong">📐 Vuông 1:1</option>
-              </select>
-            </div>
-          </div>
-          <div class="row-2">
-            <div class="field"><label class="field-label">Độ phân giải</label>
-              <select id="resolution" class="field-select">
-                <option value="hd">HD 720p</option>
-                <option value="fhd" selected>Full HD 1080p</option>
-                <option value="2k">2K 1440p</option>
-                <option value="4k">4K 2160p</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- GENERATE -->
-        <button class="btn btn-generate" id="submitBtn" onclick="generateVideo()">
-          ▶ 🎬 Tạo Video
-        </button>
-
-        <div class="progress-box" id="progressBox">
-          <div class="card" style="margin-top:10px">
-            <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
-              <span class="spinner"></span><span id="progressTitle">Đang xử lý...</span>
-            </div>
-            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
-            <div class="progress-msg" id="progressText">Khởi tạo...</div>
-          </div>
-        </div>
-
-        <div class="alert alert-error" id="errorMsg"></div>
-      </div>
-
-      <!-- === RIGHT: PLAYER === -->
-      <div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">📹 Preview & Output</span></div>
-          <div class="player-placeholder" id="playerPlaceholder">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".25">
-              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-            </svg>
-            <span>Video sẽ hiển thị ở đây</span>
-          </div>
-          <div id="videoPlayerContainer" style="display:none">
-            <video id="videoPlayer" controls playsinline style="width:100%;border-radius:var(--radius)"></video>
-          </div>
-          <div class="stats" id="stats" style="display:none">
-            <div class="stat"><div class="stat-val" id="statDur">—</div><div class="stat-lbl">Thời lượng</div></div>
-            <div class="stat"><div class="stat-val" id="statSize">—</div><div class="stat-lbl">Dung lượng</div></div>
-            <div class="stat"><div class="stat-val" id="statWords">—</div><div class="stat-lbl">Số từ</div></div>
-            <div class="stat"><div class="stat-val" id="statSpeed">—</div><div class="stat-lbl">Tốc độ</div></div>
-          </div>
-          <div id="videoActions" style="display:none;margin-top:10px">
-            <a id="downloadBtn" class="btn btn-generate" download style="text-decoration:none;font-size:12px">📥 Tải MP4</a>
-            <button class="btn btn-glass" onclick="copyLink()" style="margin-top:6px;width:100%">🔗 Sao chép link</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <footer>X-Video Studio &copy; 2026 AI World · Macmini M4 · VieNeu TTS</footer>
+<div class="relative max-w-3xl mx-auto">
+  <div class="glass-panel rounded-full p-2 glass-card-inner-glow flex items-center">
+    <span class="text-primary ml-sm mr-xs text-lg">🔗</span>
+    <input class="flex-1 bg-transparent border-none text-on-surface placeholder:text-on-surface-variant focus:ring-0 font-body-md text-body-md py-3 px-2" placeholder="Paste article URL or script here..." type="url" id="url"/>
+    <button onclick="genVideo()" class="btn-shine bg-primary text-black font-label-md text-label-md font-bold py-3 px-8 rounded-full neon-glow-primary hover:bg-primary-fixed transition-colors flex items-center gap-xs" id="sb">
+      ✨ Tạo Video
+    </button>
   </div>
 
-  <script>
-    let pollId, jobId;
+  <!-- Tab Contents -->
+  <div id="voiceTabPanel" class="tab-panel mt-md" style="display:none">
+    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
+      <h3 class="font-label-md text-label-md text-primary mb-sm">🎤 Chọn giọng đọc</h3>
+      <div class="select-list" id="vl"></div>
+      <details class="mt-sm"><summary>Clone giọng mới</summary>
+        <div class="border border-dashed border-white/10 rounded-lg p-3 text-center mt-2 cursor-pointer" onclick="document.getElementById('cf').click()">
+          <input type="file" id="cf" accept=".wav,.mp3,.m4a" onchange="onCF(this)" style="display:none">
+          <div class="text-xs text-on-surface-variant">Chọn file ghi âm (WAV/MP3)</div>
+          <div id="cfs" class="text-[10px] opacity-50">Chưa chọn</div>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <input type="text" id="cn" class="glass-input flex-1 text-xs" placeholder="Đặt tên giọng">
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div><label class="text-[10px] text-on-surface-variant">Ngôn ngữ</label>
+            <select id="cloneLang" class="glass-input text-xs"><option value="vi">Tiếng Việt</option><option value="en">Tiếng Anh</option></select></div>
+          <div><label class="text-[10px] text-on-surface-variant">Vùng miền</label>
+            <select id="cloneRegion" class="glass-input text-xs"><option value="south">Miền Nam</option><option value="north">Miền Bắc</option><option value="central">Miền Trung</option></select></div>
+          <div><label class="text-[10px] text-on-surface-variant">Giới tính</label>
+            <select id="cloneGender" class="glass-input text-xs"><option value="female">Nữ</option><option value="male">Nam</option></select></div>
+          <div><label class="text-[10px] text-on-surface-variant">Độ tuổi</label>
+            <select id="cloneAge" class="glass-input text-xs"><option value="adult">Trung niên</option><option value="young">Trẻ</option><option value="elder">Già</option></select></div>
+          <div class="col-span-2"><label class="text-[10px] text-on-surface-variant">Phong cách</label>
+            <select id="cloneStyle" class="glass-input text-xs"><option value="normal">Nghiêm túc</option><option value="serious">Trang trọng</option><option value="funny">Hài hước</option></select></div>
+        </div>
+        <button class="bg-primary text-black rounded-lg px-4 py-2 text-xs font-bold w-full mt-2" onclick="doClone()" id="cbtn">Clone</button>
+        <div id="cs" class="text-[10px] text-on-surface-variant mt-1"></div>
+      </details>
+    </div>
+  </div>
 
-    function pickStyle(el){document.querySelectorAll('#styleChips .chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected')}
-    function getStyle(){return document.querySelector('#styleChips .chip.selected')?.dataset?.style||'news'}
-    function setVal(field,el,text){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');document.getElementById(field).value=text}
+  <div id="musicTabPanel" class="tab-panel mt-md" style="display:none">
+    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
+      <h3 class="font-label-md text-label-md text-primary mb-sm">🎵 Nhạc nền</h3>
+      <div class="select-list" id="ml"></div>
+      <details class="mt-sm"><summary>Copy file vào bgm_audio/ trên Mac mini</summary>
+        <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">App tự động liệt kê file MP3/WAV/M4A từ <code class="bg-black/30 px-1.5 py-0.5 rounded text-primary">bgm_audio/</code>.</p>
+      </details>
+    </div>
+  </div>
 
-    function fetchUrl(){
-      const url=document.getElementById('url').value.trim();
-      if(!url)return showError('Nhập URL bài viết');
-      const btn=document.getElementById('fetchBtn');
-      btn.innerHTML='<span class="spinner"></span> Đang lấy...';btn.disabled=true;
+  <div id="cfgTabPanel" class="tab-panel mt-md" style="display:none">
+    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
+      <h3 class="font-label-md text-label-md text-primary mb-sm">⚙️ Cấu hình</h3>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Style</label><select id="style" class="glass-input"><option value="news">Bản tin</option><option value="analysis">Phân tích</option><option value="story">Kể chuyện</option></select></div>
+        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Tốc độ</label><select id="speed" class="glass-input"><option value="slow">Chậm</option><option value="normal" selected>Vừa</option><option value="fast">Nhanh</option></select></div>
+        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Khổ</label><select id="aspect" class="glass-input"><option value="doc">9:16</option><option value="ngang">16:9</option><option value="vuong">1:1</option></select></div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Độ phân giải</label><select id="res" class="glass-input"><option value="hd">HD</option><option value="fhd" selected>FHD</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
+        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Output Dir</label><input type="text" id="outdir2" class="glass-input" value="output/" style="font-size:11px"></div>
+        <div class="flex items-end"><button onclick="toggleLang()" id="langBtn" class="glass-input text-center font-bold cursor-pointer hover:border-primary transition-all" style="height:33px">VI</button></div>
+      </div>
+    </div>
+  </div>
 
-      fetch('/api/prefetch?url='+encodeURIComponent(url))
-        .then(r=>r.json()).then(d=>{
-          btn.innerHTML='📥 Lấy nội dung';btn.disabled=false;
-          if(d.error){showError(d.error);return}
-          document.getElementById('previewTitle').textContent=d.title||'';
-          document.getElementById('previewMeta').textContent=(d.category||'')+' · '+(d.date||'');
-          document.getElementById('previewBody').textContent=(d.excerpt||'').substring(0,600);
-          document.getElementById('previewContent').classList.add('show');
-          document.getElementById('mainContent').value=d.excerpt||d.title||'';
-          if(d.title)document.getElementById('hook').value='🔥 Tin nóng: '+d.title.substring(0,60);
-        }).catch(e=>{btn.innerHTML='📥 Lấy nội dung';btn.disabled=false;showError('Lỗi: '+e.message)});
-    }
+  <!-- Progress -->
+  <div class="progress-box" id="prc">
+    <div class="progress-bar"><div class="progress-fill" id="prf" style="width:0"></div></div>
+    <div class="progress-text" id="prt">Starting...</div>
+  </div>
 
-    function previewVoice(){
-      const voice=document.getElementById('voice').value;
-      const status=document.getElementById('voiceStatus');
-      const btn=document.getElementById('previewVoiceBtn');
-      const audio=document.getElementById('voicePreviewAudio');
-      
-      const sampleText=voice.startsWith('female')||voice.startsWith('male')
-        ?'Xin chào, đây là giọng đọc tiếng Việt của X Video Studio.'
-        :'Hello, this is a voice preview from X Video Studio.';
-      const lang=voice.startsWith('female')||voice.startsWith('male')?'vi':'en';
+  <!-- Alerts -->
+  <div class="alert alert-error" id="err"></div>
+  <div class="alert alert-ok" id="ok"></div>
+</div>
+</section>
 
-      btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Đang tạo...';
-      status.textContent='';
+<!-- Config Cards beneath: Script + Hook + CTA -->
+<div id="advancedControls" class="max-w-4xl mx-auto mb-xl" style="display:none">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+    <div class="glass-panel rounded-xl p-md glass-card-inner-glow">
+      <h4 class="font-label-md text-label-md text-primary mb-sm">📝 Hook</h4>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Tin nóng:'">🔥 Tin nóng</button>
+        <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Bạn có biết...'">🤔 Bạn biết</button>
+        <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Đột phá mới:'">🚀 Đột phá</button>
+      </div>
+      <input type="text" id="hook" class="glass-input" value="Tin nóng:" style="font-size:12px">
+    </div>
+    <div class="glass-panel rounded-xl p-md glass-card-inner-glow flex flex-col">
+      <h4 class="font-label-md text-label-md text-primary mb-sm">📢 CTA</h4>
+      <input type="text" id="cta" class="glass-input" value="Theo dõi AI World để cập nhật tin mới!" style="flex:1">
+    </div>
+  </div>
+</div>
 
-      fetch('/api/preview-voice?voice='+encodeURIComponent(voice)+'&text='+encodeURIComponent(sampleText)+'&language='+lang)
-        .then(r=>{
-          if(!r.ok)throw new Error('HTTP '+r.status);
-          btn.disabled=false;btn.innerHTML='🔈 Nghe thử giọng đọc';
-          status.textContent='✅ Sẵn sàng';
-          audio.src='/api/preview-voice?voice='+encodeURIComponent(voice)+'&text='+encodeURIComponent(sampleText)+'&language='+lang+'&t='+Date.now();
-          audio.style.display='block';audio.load();audio.play().catch(()=>{});
-        }).catch(e=>{btn.disabled=false;btn.innerHTML='🔈 Nghe thử giọng đọc';status.textContent='⚠️ Lỗi: '+e.message});
-    }
+<!-- Video Styles Section (from Stitch design) -->
+<section class="max-w-6xl mx-auto mb-xl">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Video Styles</h3>
+<span class="font-label-md text-label-md text-primary flex items-center gap-xs">4 styles <span class="text-sm">→</span></span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md">
+  <!-- Style Cards -->
+  <div class="glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300 border-primary/50">
+    <div class="h-32 bg-surface-container relative overflow-hidden flex items-center justify-center text-4xl">📰</div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-xl" style="pointer-events:none"></div>
+    <span class="relative block -mt-8 pb-3 pl-3 font-label-md text-label-md text-on-surface font-semibold z-10">News Cast</span>
+  </div>
+  <div class="glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300">
+    <div class="h-32 bg-surface-container relative overflow-hidden flex items-center justify-center text-4xl">🎬</div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-xl" style="pointer-events:none"></div>
+    <span class="relative block -mt-8 pb-3 pl-3 font-label-md text-label-md text-on-surface font-semibold z-10">Documentary</span>
+  </div>
+  <div class="glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300">
+    <div class="h-32 bg-surface-container relative overflow-hidden flex items-center justify-center text-4xl">📖</div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-xl" style="pointer-events:none"></div>
+    <span class="relative block -mt-8 pb-3 pl-3 font-label-md text-label-md text-on-surface font-semibold z-10">Storytelling</span>
+  </div>
+  <div class="glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300">
+    <div class="h-32 bg-surface-container relative overflow-hidden flex items-center justify-center text-4xl">⚡</div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-xl" style="pointer-events:none"></div>
+    <span class="relative block -mt-8 pb-3 pl-3 font-label-md text-label-md text-on-surface font-semibold z-10">Hot News</span>
+  </div>
+</div>
+</section>
 
-    function generateVideo(){
-      const url=document.getElementById('url').value.trim();
-      const text=document.getElementById('mainContent').value.trim();
-      if(!url&&!text)return showError('Cần URL hoặc nội dung');
+<!-- Recent Projects Section -->
+<section class="max-w-6xl mx-auto mb-xl">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Recent Projects</h3>
+<div class="flex flex-col gap-sm" id="recentProjects">
+  <div class="glass-panel rounded-lg p-sm glass-card-inner-glow text-center text-on-surface-variant font-code-sm py-lg">
+    Connect a URL and generate your first video ✨
+  </div>
+</div>
+</section>
+</main>
+</div>
 
-      hideError();
-      const btn=document.getElementById('submitBtn');
-      btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Đang tạo trên Macmini M4...';
-      document.getElementById('progressBox').classList.add('show');
+<!-- Help Modal -->
+<div class="help-overlay" id="helpOverlay" onclick="toggleHelp()">
+  <div class="glass-panel glass-card-inner-glow" style="max-width:420px;width:90%;padding:24px;border-radius:16px" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-headline-md text-headline-md text-primary">📖 Hướng dẫn</h3>
+      <button onclick="toggleHelp()" class="text-on-surface-variant hover:text-primary text-lg">✕</button>
+    </div>
+    <div class="font-body-md text-body-md text-on-surface-variant space-y-3">
+      <p><b class="text-primary">1.</b> Paste URL → script tự sinh</p>
+      <p><b class="text-primary">2.</b> Chọn giọng đọc (tab 🎤)</p>
+      <p><b class="text-primary">3.</b> Chọn nhạc nền (tab 🎵)</p>
+      <p><b class="text-primary">4.</b> Cấu hình Style/Tốc độ/Khổ (tab ⚙️)</p>
+      <p><b class="text-primary">5.</b> ✨ <b>Tạo Video</b> → xem + tải MP4</p>
+      <hr class="border-white/10 my-3">
+      <p class="font-code-sm text-[11px]">v1.5.8 • Mac mini M4 • VieNeu TTS • AI World</p>
+    </div>
+  </div>
+</div>
 
-      const payload={
-        url:url||undefined,text:text||undefined,
-        hook:document.getElementById('hook').value.trim(),
-        cta:document.getElementById('cta').value.trim(),
-        voice:document.getElementById('voice').value,
-        speed:document.getElementById('speed').value,
-        style:getStyle(),
-        music:document.getElementById('music').value,
-        aspect:document.getElementById('aspect').value,
-        resolution:document.getElementById('resolution').value,
-        language:document.getElementById('voice').value.startsWith('female')||document.getElementById('voice').value.startsWith('male')?'vi':'en'
-      };
+<script>
+var voices=[],favs=JSON.parse(localStorage.getItem("xvf")||"[]"),sV="female_south",sM="ambient",cf=null,pi=null,ji=null,bgmFiles=[];
+document.addEventListener("DOMContentLoaded",function(){loadVoices();loadBgm();warmup()});
 
-      fetch('/api/generate',{
-        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-      }).then(r=>r.json()).then(d=>{
-        jobId=d.job_id;startPoll();
-      }).catch(e=>{
-        btn.disabled=false;btn.innerHTML='▶ 🎬 Tạo Video';
-        showError('Lỗi: '+e.message);
-      });
-    }
+function warmup(){fetch("/api/warmup-tts").catch(function(){})}
+function toggleHelp(){document.getElementById("helpOverlay").classList.toggle("on")}
 
-    function startPoll(){
-      clearInterval(pollId);
-      pollId=setInterval(()=>{
-        fetch('/api/jobs/'+jobId).then(r=>r.json()).then(j=>{
-          if(j.status==='processing')setProgress(j.progress||0);
-          else if(j.status==='done'){
-            clearInterval(pollId);setProgress(100);showVideo(j);
-            document.getElementById('submitBtn').disabled=false;
-            document.getElementById('submitBtn').innerHTML='▶ 🎬 Tạo Video';
-          }else if(j.status==='error'){
-            clearInterval(pollId);showError(j.error||'Lỗi không xác định');
-            document.getElementById('submitBtn').disabled=false;
-            document.getElementById('submitBtn').innerHTML='▶ 🎬 Tạo Video';
-          }
-        });
-      },1000);
-    }
+function switchTab(t,id){
+  document.querySelectorAll(".tab-btn").forEach(function(e){e.classList.remove("text-primary","border-primary/30","bg-primary/10");e.classList.add("border-transparent","text-on-surface-variant")});
+  t.classList.add("text-primary","border-primary/30","bg-primary/10");t.classList.remove("border-transparent","text-on-surface-variant");
+  // Show/hide the tab content panels below hero
+  document.querySelectorAll(".tab-panel").forEach(function(e){e.style.display="none"});
+  var panel=document.getElementById(id+"Panel");
+  if(panel)panel.style.display="block";
+}
 
-    function setProgress(p){
-      document.getElementById('progressFill').style.width=p+'%';
-      const msgs=['Khởi tạo...','Đang crawl...','🎤 TTS...','🎵 Nhạc...','🎬 Render...','✅ Hoàn tất'];
-      document.getElementById('progressText').textContent=msgs[Math.min(5,Math.floor(p/20))];
-    }
+async function loadVoices(){
+  try{var r=await fetch("/api/voices");var d=await r.json();voices=d.voices||[];renderVoices()}catch(e){}
+}
+function renderVoices(){
+  var el=document.getElementById("vl");if(!el)return;
+  el.innerHTML="";
+  voices.forEach(function(v){
+    var d=document.createElement("div");
+    d.className="select-item"+(v.id===sV?" on":"");
+    d.innerHTML="<span style='font-size:12px;cursor:pointer;flex:1' onclick=\"selV('"+v.id+"')\">"+(v.emoji||"🎤")+" "+(v.name||v.id)+"</span><button class='play-btn' onclick=\"event.stopPropagation();pV('"+v.id+"')\">▶</button>";
+    el.appendChild(d);
+  });
+}
+function selV(id){sV=id;renderVoices()}
+function pV(vid){
+  var t=vid.startsWith("female")||vid.startsWith("male")?"Xin chào, đây là giọng đọc từ X Video Studio.":"Hello, this is a voice preview.";
+  var l=vid.startsWith("female")||vid.startsWith("male")?"vi":"en";
+  var a=document.getElementById("pa");
+  a.src="/api/preview-voice?voice="+encodeURIComponent(vid)+"&text="+encodeURIComponent(t)+"&language="+l+"&t="+Date.now();
+  a.load();a.play().catch(function(){});
+}
 
-    function showVideo(job){
-      document.getElementById('playerPlaceholder').style.display='none';
-      const cont=document.getElementById('videoPlayerContainer');cont.style.display='block';
-      const vid=document.getElementById('videoPlayer');
-      vid.src='/output/'+(job.video_path||'');vid.load();
+async function loadBgm(){
+  try{var r=await fetch("/api/bgm-files");var d=await r.json();bgmFiles=d.tracks||[];renderMusic()}catch(e){}
+}
+function renderMusic(){
+  var el=document.getElementById("ml");if(!el)return;
+  el.innerHTML="";
+  [{id:"ambient",n:"Ambient"},{id:"corporate",n:"Corporate"},{id:"tech",n:"Tech"},{id:"cinematic",n:"Cinematic"},{id:"none",n:"Không nhạc"}].forEach(function(s){
+    var d=document.createElement("div");
+    d.className="select-item"+(sM===s.id?" on":"");
+    d.onclick=function(){sM=s.id;renderMusic()};
+    d.innerHTML="<span style='flex:1'>"+s.n+"</span><button class='play-btn' onclick=\"event.stopPropagation();playB('"+s.id+"')\">▶</button>";
+    el.appendChild(d);
+  });
+  bgmFiles.forEach(function(t){
+    var d=document.createElement("div");
+    d.className="select-item"+(sM===t.id?" on":"");
+    d.onclick=function(){sM=t.id;renderMusic()};
+    d.innerHTML="<span style='flex:1'>"+t.name+"</span><button class='play-btn' onclick=\"event.stopPropagation();playB('"+t.id+"')\">▶</button>";
+    el.appendChild(d);
+  });
+}
+function playB(id){
+  var a=document.getElementById("pa");
+  a.src="/api/preview-music?style="+encodeURIComponent(id)+"&t="+Date.now();
+  a.load();a.play().catch(function(){});
+}
 
-      document.getElementById('stats').style.display='grid';
-      document.getElementById('statDur').textContent=(job.duration||'—')+'s';
-      document.getElementById('statSize').textContent=((job.size_kb||0)/1024).toFixed(1)+'MB';
-      document.getElementById('statWords').textContent=job.word_count||'—';
-      document.getElementById('statSpeed').textContent=(job.tts_rate||'—')+' wpm';
+function onCF(i){if(i.files&&i.files[0]){cf=i.files[0];document.getElementById("cfs").textContent=cf.name+" ("+Math.round(cf.size/1024)+"KB)"}}
+async function doClone(){
+  if(!cf){document.getElementById("cs").textContent="Chọn file ghi âm trước";return}
+  var nm=document.getElementById("cn").value.trim()||"Giọng mới";
+  var btn=document.getElementById("cbtn");btn.disabled=true;btn.innerHTML="<span class='spinner'></span>";
+  var fd=new FormData();fd.append("file",cf);fd.append("name",nm);
+  fd.append("lang",document.getElementById("cloneLang").value||"vi");
+  fd.append("region",document.getElementById("cloneRegion").value||"south");
+  fd.append("gender",document.getElementById("cloneGender").value||"female");
+  fd.append("age",document.getElementById("cloneAge").value||"adult");
+  fd.append("style_tag",document.getElementById("cloneStyle").value||"normal");
+  try{
+    var r=await fetch("/api/clone-voice",{method:"POST",body:fd});
+    var d=await r.json();if(d.error)throw new Error(d.error);
+    document.getElementById("cs").textContent="Đã clone: "+(d.display||nm);
+    btn.disabled=false;btn.innerHTML="Clone";cf=null;
+    document.getElementById("cn").value="";document.getElementById("cfs").textContent="Chưa chọn";
+    loadVoices();
+  }catch(e){document.getElementById("cs").textContent="Lỗi: "+e.message;btn.disabled=false;btn.innerHTML="Clone"}
+}
+function genVideo(){
+  var u=document.getElementById("url").value.trim();
+  if(!u)return showE("Cần URL hoặc nội dung");hideA();
+  var b=document.getElementById("sb");b.disabled=true;b.innerHTML="<span class='spinner'></span> Creating...";
+  document.getElementById("prc").classList.add("on");
+  var p={
+    url:u,text:undefined,
+    hook:document.getElementById("hook").value.trim()||"Tin nóng:",
+    cta:document.getElementById("cta").value.trim()||"Theo dõi AI World để cập nhật tin mới!",
+    voice:sV,speed:document.getElementById("speed").value,style:document.getElementById("style").value,
+    music:sM,aspect:document.getElementById("aspect").value,resolution:document.getElementById("res").value,
+    language:(sV.startsWith("female")||sV.startsWith("male"))?"vi":"en",
+    output_dir:document.getElementById("outdir2").value.trim()||undefined
+  };
+  fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
+    .then(function(r){return r.json()})
+    .then(function(d){ji=d.job_id;poll()})
+    .catch(function(e){b.disabled=false;b.innerHTML="✨ Tạo Video";showE("Lỗi: "+e.message)});
+}
 
-      const act=document.getElementById('videoActions');act.style.display='block';
-      document.getElementById('downloadBtn').href='/output/'+(job.video_path||'');
-    }
-
-    function copyLink(){
-      navigator.clipboard.writeText(location.origin+'/output/'+(document.getElementById('videoPlayer').src.split('/').pop()));
-    }
-
-    function showError(m){const e=document.getElementById('errorMsg');e.textContent='❌ '+m;e.classList.add('show')}
-    function hideError(){document.getElementById('errorMsg').classList.remove('show')}
-
-    // Also copy logo to frontend dir
-  </script>
-</body>
-</html>
+function poll(){
+  clearInterval(pi);
+  pi=setInterval(function(){
+    fetch("/api/jobs/"+ji).then(function(r){return r.json()}).then(function(j){
+      if(j.status==="queued"||j.status==="processing"){setP(j.progress||5)}
+      else if(j.status==="done"){
+        clearInterval(pi);setP(100);
+        document.getElementById("sb").disabled=false;document.getElementById("sb").innerHTML="✨ Tạo Video";
+        document.getElementById("prc").classList.remove("on");showO("Video hoàn tất!");
+        // Show in projects section
+        var pj=document.getElementById("recentProjects");
+        pj.innerHTML='<div class="glass-panel rounded-lg p-sm flex items-center gap-md glass-card-inner-glow"><div class="w-24 h-16 bg-surface-container rounded flex items-center justify-center text-xl">🎬</div><div class="flex-1"><h4 class="font-label-md text-label-md text-on-surface">'+j.video_path+'</h4><p class="font-code-sm text-code-sm text-on-surface-variant mt-1">Just now • '+(j.duration||'---')+'s</p></div><div class="flex items-center gap-xs px-3 py-1 rounded-full bg-cyan-900/30 border border-cyan-500/30"><span class="w-2 h-2 rounded-full bg-primary"></span><span class="font-code-sm text-[11px] text-primary">Ready</span></div><a href="/output/'+(j.video_path||'')+'" download class="text-on-surface-variant hover:text-white p-2">⬇</a></div>';
+        var v=document.createElement("video");v.controls=true;v.src="/output/"+(j.video_path||"");v.style.cssText="width:100%;max-height:300px;border-radius:12px;margin-top:8px";
+        pj.appendChild(v);
+      }else if(j.status==="error"){
+        clearInterval(pi);showE(j.error||"Lỗi");
+        document.getElementById("sb").disabled=false;document.getElementById("sb").innerHTML="✨ Tạo Video";
+        document.getElementById("prc").classList.remove("on");
+      }
+    });
+  },1000);
+}
+function setP(p){document.getElementById("prf").style.width=p+"%";
+  var m=["Starting...","Loading...","Voice...","Music...","Rendering...","Done!"];
+  document.getElementById("prt").textContent=m[Math.min(5,Math.floor(p/20))];
+}
+function showE(m){var e=document.getElementById("err");e.textContent=m;e.classList.add("on")}
+function showO(m){var e=document.getElementById("ok");e.textContent=m;e.classList.add("on");setTimeout(function(){e.classList.remove("on")},3000)}
+function hideA(){document.getElementById("err").classList.remove("on");document.getElementById("ok").classList.remove("on")}
+function toggleLang(){
+  var b=document.getElementById("langBtn");
+  if(b.textContent==="VI"){b.textContent="EN";document.getElementById("hook").value="Breaking:";document.getElementById("cta").value="Follow AI World for updates!"}
+  else{b.textContent="VI";document.getElementById("hook").value="Tin nóng:";document.getElementById("cta").value="Theo dõi AI World để cập nhật tin mới!"}
+}
+</script>
+</body></html>

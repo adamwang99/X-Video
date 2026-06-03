@@ -7,12 +7,14 @@ Chạy trên Macmini M4 (192.168.1.12:8767)
 import subprocess, json, os, re, shutil, time, hashlib, threading
 from pathlib import Path
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
-import uvicorn, urllib.request
+import uvicorn, urllib.request; _ur = urllib.request
+import subprocess as _sp, pathlib as _pl
 
 # CONFIG
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
@@ -34,6 +36,8 @@ BGM_MAP = {
 }
 
 app = FastAPI(title="X-Video", version="1.1.0")
+
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class GenerateRequest(BaseModel):
     url: Optional[str] = None
@@ -319,9 +323,76 @@ def serve(filename: str):
 @app.get("/healthz")
 def healthz(): return {"status":"ok","machine":"Macmini","gpu":"Apple M4"}
 
+
+# ===== VOICE LIBRARY PROXY =====
+@app.get("/api/voice-library/proxy/voices")
+def _vlv():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/voices")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"voices": [], "count": 0}
+
+@app.get("/api/voice-library/proxy/custom-fields")
+def _vlf():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/voice-library/custom-fields")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"custom_fields": []}
+
+@app.get("/api/voice-library/proxy/tts-status")
+def _vlt():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/tts-status")
+        with _ur.urlopen(r, timeout=3) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"overall": "partial", "services": {}}
+
+@app.post("/api/voice-library/proxy/voices/{voice_id}/favorite")
+def _vlfa(voice_id: str):
+    try:
+        r = _ur.Request(f"http://127.0.0.1:8769/api/voices/{voice_id}/favorite", method="POST")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"success": False}
+
+@app.delete("/api/voice-library/proxy/voices/{voice_id}")
+def _vld(voice_id: str):
+    try:
+        r = _ur.Request(f"http://127.0.0.1:8769/api/voices/{voice_id}", method="DELETE")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"success": False}
+
+@app.post("/api/try-tts")
+def _try_tts(data: dict):
+    text = data.get("text", "Xin chào")
+    engine = data.get("engine", "vieneu")
+    eps = {"vieneu":"http://127.0.0.1:6023/v1/audio/speech","omnivoice":"http://127.0.0.1:6024/v1/audio/speech","valtec":"http://127.0.0.1:6025/v1/audio/speech"}
+    ep = eps.get(engine, eps["vieneu"])
+    body = __import__("json").dumps({"model":engine,"input":text,"voice":"female_south","speed":1.0}).encode()
+    req = _ur.Request(ep, data=body, method="POST")
+    req.add_header("Content-Type", "application/json")
+    try:
+        with _ur.urlopen(req, timeout=120) as resp:
+            data = resp.read()
+        from fastapi.responses import Response
+        return Response(content=data, media_type="audio/mp3")
+    except Exception as e:
+        raise __import__("fastapi").HTTPException(503, f"TTS engine '{engine}' failed: {str(e)}")
+
+
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="static")
 
 if __name__ == "__main__":
+    _vlp = _pl.Path(__file__).parent / "voice_library.py"
+    if _vlp.exists():
+        _sp.Popen(["python3", str(_vlp)], stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        import time; time.sleep(5)
+        print("Voice Library spawned on :8769")
+    else:
+        print("voice_library.py not found at", str(_vlp))
     print(f"🚀 X-Video Server v1.1")
     print(f"   http://0.0.0.0:8767")
     uvicorn.run(app, host="0.0.0.0", port=8767)

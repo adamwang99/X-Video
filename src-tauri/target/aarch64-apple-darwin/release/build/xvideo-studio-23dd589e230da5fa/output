@@ -1,0 +1,16 @@
+cargo:rerun-if-env-changed=TAURI_CONFIG
+cargo:rustc-check-cfg=cfg(desktop)
+cargo:rustc-cfg=desktop
+cargo:rustc-check-cfg=cfg(mobile)
+cargo:rerun-if-changed=/Users/tuan/X-Video-Fresh/src-tauri/tauri.conf.json
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=xvideo
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=com_aiworld
+cargo:rustc-check-cfg=cfg(dev)
+cargo:PERMISSION_FILES_PATH=/Users/tuan/X-Video-Fresh/src-tauri/target/aarch64-apple-darwin/release/build/xvideo-studio-23dd589e230da5fa/out/app-manifest/__app__-permission-files
+cargo:rerun-if-changed=capabilities
+cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=aarch64-apple-darwin
+cargo:rerun-if-changed=../backend/server.py
+cargo:rerun-if-changed=../backend/voice_library.py
+cargo:rerun-if-changed=../requirements.txt
+cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=14.0

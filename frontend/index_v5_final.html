@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>X-Video Studio - AI World</title>
+<link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif}
+:root{--text:#f8fbff;--muted:rgba(238,242,255,0.72);--muted2:rgba(238,242,255,0.55);--accent:#9f8cff;--accent2:#67ddff;--pink:#ff8da1;--green:#5ee3a1;--glass-line:rgba(255,255,255,0.22);--radius:22px}
+html,body{height:100%;overflow:hidden}
+body{color:var(--text);background:radial-gradient(circle at 12% 10%,rgba(94,208,255,0.48),transparent 28%),radial-gradient(circle at 84% 8%,rgba(159,140,255,0.52),transparent 32%),radial-gradient(circle at 80% 84%,rgba(255,141,161,0.34),transparent 34%),radial-gradient(circle at 18% 92%,rgba(255,207,102,0.18),transparent 26%),radial-gradient(circle at 48% 48%,rgba(103,221,255,0.10),transparent 40%),linear-gradient(145deg,#0b1020,#141a2e 38%,#090b12 70%,#17111f);background-attachment:fixed}
+.glass{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06));border:1px solid var(--glass-line);border-radius:var(--radius);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:0 20px 54px rgba(0,0,0,0.42),0 8px 24px rgba(0,0,0,0.22),inset 0 1px 0 rgba(255,255,255,0.30),inset 0 -1px 0 rgba(255,255,255,0.06);transition:border-color .15s}
+.glass:hover{border-color:rgba(255,255,255,0.28)}
+.layout{display:grid;grid-template-columns:240px 1fr;height:100vh;overflow:hidden;padding:12px;gap:12px}
+.side{padding:18px 14px;border-radius:26px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(160deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05));border:1px solid var(--glass-line);backdrop-filter:blur(22px) saturate(170%);box-shadow:0 20px 54px rgba(0,0,0,0.42),inset 0 1px 0 rgba(255,255,255,0.26)}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 4px}
+.brand-icon{border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.26);flex-shrink:0;box-shadow:0 0 22px rgba(103,221,255,0.32),0 0 44px rgba(159,140,255,0.18)}
+.brand-icon img{width:40px;height:40px;display:block;object-fit:contain}
+.brand-text strong{font-size:15px;font-weight:800;letter-spacing:-0.02em;display:block}
+.brand-text span{font-size:10px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;border:1px solid transparent;transition:all .14s;background:none;font-family:inherit;width:100%;text-align:left}
+.ni:hover{background:rgba(255,255,255,0.08);color:#fff}
+.ni.on{color:#fff;background:linear-gradient(135deg,rgba(159,140,255,0.42),rgba(103,221,255,0.30));border-color:rgba(103,221,255,0.40);box-shadow:0 10px 26px rgba(103,221,255,0.22),inset 0 1px 0 rgba(255,255,255,0.24)}
+.sf{background:linear-gradient(135deg,rgba(159,140,255,0.20),rgba(255,141,161,0.14));border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:14px}
+.sf strong{font-size:13px}.sf p{font-size:11px;color:var(--muted);line-height:1.5;margin:6px 0}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.08)}
+.badge.ac{border-color:rgba(103,221,255,0.26);background:rgba(103,221,255,0.10);color:var(--accent2)}
+.main{display:flex;flex-direction:column;overflow:hidden;gap:12px}
+.tb{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:20px;flex-shrink:0;background:linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05));border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.24)}
+.tb h2{font-size:15px;font-weight:700;letter-spacing:-0.02em}.tb-r{display:flex;align-items:center;gap:8px}
+.ct{flex:1;overflow-y:auto;padding:2px 2px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.10) transparent}
+.ct::-webkit-scrollbar{width:3px}.ct::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.10);border-radius:2px}
+.page{display:none}.page.on{display:block}
+.wg{display:grid;grid-template-columns:1fr 400px;gap:12px}@media(max-width:1100px){.wg{grid-template-columns:1fr}}
+.card{padding:18px 20px;border-radius:18px;margin-bottom:12px}
+.ch{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;font-weight:700;letter-spacing:-0.02em}
+.csub{font-size:10px;color:var(--muted);margin-left:auto}
+.fl{margin-bottom:10px}.fl-l{display:block;font-size:10px;font-weight:700;margin-bottom:4px;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px}
+.fi,.fs,.ft{width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,0.18);border-radius:12px;background:rgba(255,255,255,0.08);color:var(--text);outline:none;font-size:12px;font-family:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);transition:border .15s}
+.fi:focus,.fs:focus,.ft:focus{border-color:rgba(103,221,255,0.50);box-shadow:0 0 0 3px rgba(103,221,255,0.10)}
+.ft{resize:vertical;min-height:50px}.fs{cursor:pointer}select option{background:#171a28;color:#f8fbff}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:768px){.r2,.r4{grid-template-columns:1fr}}
+.chips{display:flex;gap:3px;flex-wrap:wrap}
+.chip{padding:4px 9px;border-radius:999px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:var(--muted);transition:all .12s;user-select:none}
+.chip:hover{border-color:rgba(255,255,255,0.26);color:#fff}.chip.on{border-color:rgba(103,221,255,0.38);background:rgba(103,221,255,0.12);color:var(--accent2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:12px;font-weight:700;font-size:12px;cursor:pointer;border:1px solid rgba(255,255,255,0.20);background:linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.08));box-shadow:inset 0 1px 0 rgba(255,255,255,0.16),0 10px 22px rgba(0,0,0,0.20);transition:all .12s;font-family:inherit;color:var(--text)}
+.btn:hover{transform:translateY(-1px);background:linear-gradient(180deg,rgba(255,255,255,0.24),rgba(255,255,255,0.10))}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-p{background:linear-gradient(135deg,rgba(159,140,255,0.96),rgba(103,221,255,0.80));
+  color:#0b1020;border-color:rgba(255,255,255,0.30);
+  box-shadow:0 14px 30px rgba(103,221,255,0.24),0 6px 16px rgba(159,140,255,0.18),inset 0 1px 0 rgba(255,255,255,0.28)}
+.btn-p:hover{filter:brightness(1.05)}
+.btn-sm{padding:7px 12px;font-size:11px;border-radius:10px}
+.sp{width:12px;height:12px;border:2px solid rgba(255,255,255,0.10);border-top-color:var(--accent2);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.al{border-radius:12px;padding:10px 12px;font-size:12px;display:none;margin:6px 0;animation:fade .2s}
+.al.on{display:flex;align-items:center;gap:6px}.al-err{background:rgba(255,141,161,0.12);color:#ffe4ea;border:1px solid rgba(255,141,161,0.32)}
+.al-ok{background:rgba(94,227,161,0.12);color:#c7f7e0;border:1px solid rgba(94,227,161,0.30)}
+@keyframes fade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+.prc{background:rgba(103,221,255,0.05);border:1px solid rgba(103,221,255,0.14);border-radius:12px;padding:14px;display:none}
+.prc.on{display:block}.prb{width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden}
+.prf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s}
+.prt{font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
+.pph{aspect-ratio:9/16;background:rgba(0,0,0,0.28);border:1px dashed rgba(255,255,255,0.12);border-radius:16px;display:flex;align-items:center;justify-content:center;color:var(--muted2);font-size:11px}
+video{width:100%;border-radius:16px;display:block}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.st-it{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:8px;text-align:center}
+.st-v{font-size:14px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.st-l{font-size:8px;color:var(--muted2);text-transform:uppercase;letter-spacing:.2px;margin-top:1px}
+.dz{border:1.5px dashed rgba(255,255,255,0.20);border-radius:14px;padding:16px;text-align:center;cursor:pointer;color:var(--muted);transition:all .14s;font-size:11px}
+.dz:hover{border-color:rgba(103,221,255,0.40);background:rgba(103,221,255,0.05);color:#dff9ff}
+input[type=file]{display:none}
+.vl{max-height:300px;overflow-y:auto}.vs{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;padding:0 4px}
+.vi{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:10px;transition:all .12s}
+.vi:hover{background:rgba(255,255,255,0.04)}
+.vi.on{background:linear-gradient(135deg,rgba(159,140,255,0.18),rgba(103,221,255,0.12));border:1px solid rgba(103,221,255,0.24);margin:0 -1px}
+.va{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);flex-shrink:0}
+.vif{flex:1;min-width:0;cursor:pointer;font-size:11px;font-weight:600}.vm{font-size:8px;color:var(--muted2)}
+.vact{display:flex;gap:2px;flex-shrink:0}
+.vpb{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--muted);font-size:9px;transition:all .12s}
+.vpb:hover{border-color:rgba(103,221,255,0.34);color:var(--accent2)}
+.vd{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);margin:6px 0}
+.mi{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:8px;transition:all .12s;cursor:pointer}
+.mi:hover{background:rgba(255,255,255,0.04)}
+.mi.on{background:linear-gradient(135deg,rgba(94,227,161,0.10),rgba(103,221,255,0.06));border:1px solid rgba(94,227,161,0.20)}
+.mn{font-size:10px;font-weight:500;flex:1}
+</style>
+</head>
+<body>
+<audio id="pa" style="display:none"></audio>
+<div class="layout">
+  <div class="side">
+    <div class="brand"><div class="brand-icon"><img src="/static/logo-xvideo.png" alt="X"/></div><div class="brand-text"><strong>X-Video</strong><span>URL to Video</span></div></div>
+    <nav class="nav">
+      <button class="ni on" onclick="goPage('create')"><span style="width:18px;text-align:center">&#x1F3AC;</span>Tao Video</button>
+      <button class="ni" onclick="goPage('voices')"><span style="width:18px;text-align:center">&#x1F3A4;</span>Quan ly giong</button>
+      <button class="ni" onclick="goPage('music')"><span style="width:18px;text-align:center">&#x1F3B5;</span>Am nhac</button>
+      <button class="ni" onclick="goPage('history')"><span style="width:18px;text-align:center">&#x1F4CB;</span>Lich su</button>
+    </nav>
+    <div class="sf"><strong>Mac mini M4</strong><p>VieNeu TTS . HyperFrames . AI World</p><span class="badge">v1.5</span><span class="badge ac">GPU</span></div>
+  </div>
+  <div class="main">
+    <div class="tb"><h2 id="pt">&#x1F3AC; Tao Video</h2><div class="tb-r"><span class="badge ac" id="vc">0 voices</span></div></div>
+    <div class="ct">
+      <!-- PAGE: CREATE -->
+      <div class="page on" id="pCreate">
+        <div class="wg">
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x1F4F0; URL bai viet</div>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <input type="text" id="url" class="fi" style="flex:1" placeholder="https://aiworld.news/vi/slug-bai-viet/"/>
+                <button class="btn btn-sm" onclick="fetchUrl()" id="fb">Lay</button>
+              </div>
+              <textarea id="txt" class="ft" placeholder="Hoac paste noi dung..." rows="2" style="min-height:40px"></textarea>
+            </div>
+            <div class="card glass">
+              <div class="ch">&#x1F4DD; Noi dung tien video<span class="csub">~45-90s</span></div>
+              <div style="background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;display:none;margin:8px 0" id="pv" class="pbx on"></div>
+
+              <div class="fl"><label class="fl-l">Hook</label>
+                <div class="chips" style="margin-bottom:4px">
+                  <span class="chip on" onclick="pickC(this,'hook','Tin nong:')">Tin nong</span>
+                  <span class="chip" onclick="pickC(this,'hook','Ban co biet...')">Ban biet</span>
+                  <span class="chip" onclick="pickC(this,'hook','Dot pha moi:')">Dot pha</span>
+                </div>
+                <input type="text" id="hook" class="fi" value="Tin nong:" style="font-size:11px"/>
+              </div>
+              <div class="fl"><label class="fl-l">Script</label>
+                <textarea id="script" class="ft" rows="3" style="min-height:70px;font-size:11px" placeholder="Noi dung se hien sau khi lay URL..."></textarea>
+              </div>
+              <div class="fl"><label class="fl-l">CTA</label>
+                <div class="chips" style="margin-bottom:4px">
+                  <span class="chip" onclick="pickC(this,'cta','Like & Follow!')">Like</span>
+                  <span class="chip" onclick="pickC(this,'cta','Truy cap AI World!')">AI World</span>
+                </div>
+                <input type="text" id="cta" class="fi" value="Like & Follow de cap nhat tin moi!"/>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x2699;&#xFE0F; Cau hinh</div>
+              <div class="r4">
+                <div class="fl"><label class="fl-l">Style</label><select id="style" class="fs"><option value="news">Ban tin</option><option value="reportage">Phong su</option><option value="analysis">Phan tich</option></select></div>
+                <div class="fl"><label class="fl-l">Toc do</label><select id="speed" class="fs"><option value="slow">Cham</option><option value="normal" selected>Vua</option><option value="fast">Nhanh</option></select></div>
+                <div class="fl"><label class="fl-l">Kho</label><select id="aspect" class="fs"><option value="doc">9:16</option><option value="ngang">16:9</option><option value="vuong">1:1</option></select></div>
+                <div class="fl"><label class="fl-l">Res</label><select id="res" class="fs"><option value="hd">HD</option><option value="fhd" selected>FHD</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
+              </div>
+              <div id="voiceCreateList"></div>
+              <div id="musicCreateList"></div>
+              <button class="btn btn-p" style="width:100%;margin-top:8px" onclick="genVideo()" id="sb">TAO VIDEO</button>
+              <div class="prc" id="prc"><div class="prb"><div class="prf" id="prf" style="width:0"></div></div><div class="prt" id="prt">Bat dau...</div></div>
+              <div class="al al-err" id="err"></div>
+              <div class="al al-ok" id="ok"></div>
+            </div>
+            <div class="card glass">
+              <div class="ch">&#x1F4F9; Output</div>
+              <div class="pph" id="pph"><span>Video se hien tai day</span></div>
+              <div id="vpc" style="display:none"><video id="vp" controls playsinline></video></div>
+              <div class="st" id="stats" style="display:none">
+                <div class="st-it"><div class="st-v" id="sD">-</div><div class="st-l">Thoi luong</div></div>
+                <div class="st-it"><div class="st-v" id="sS">-</div><div class="st-l">Dung luong</div></div>
+                <div class="st-it"><div class="st-v" id="sW">-</div><div class="st-l">So tu</div></div>
+                <div class="st-it"><div class="st-v" id="sR">-</div><div class="st-l">Toc do</div></div>
+              </div>
+              <div id="vact" style="display:none;margin-top:8px"><a id="dl" class="btn btn-p btn-sm" download style="text-decoration:none">Tai MP4</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: VOICES -->
+      <div class="page" id="pVoices">
+        <div class="wg">
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x1F3A4; Thu vien giong doc</div>
+              <div id="fullVoiceList"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x1F9EC; Clone giong noi</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">Tai file ghi am giong noi cua ban (WAV/MP3/M4A, 5-30 giay). He thong se phan tich va luu lai giong de dung cho video.</p>
+              <div class="dz" onclick="document.getElementById('cf').click()">
+                <input type="file" id="cf" accept=".wav,.mp3,.m4a" onchange="onCF(this)">
+                <div>Chon file ghi am</div>
+                <div style="font-size:10px;margin-top:4px;color:var(--muted2)" id="cfs">Chua chon file</div>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:6px">
+                <input type="text" id="cn" class="fi" style="flex:1;font-size:11px" placeholder="Dat ten (VD: Giong toi)"/>
+                <button class="btn btn-sm" onclick="doClone()" id="cbtn">Clone</button>
+              </div>
+              <div id="cs" style="font-size:10px;color:var(--muted2);margin-top:4px"></div>
+            </div>
+            <div class="card glass">
+              <div class="ch">&#x1F3B5; Giong yeu thich</div>
+              <div id="favList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: MUSIC -->
+      <div class="page" id="pMusic">
+        <div class="wg">
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x1F3B5; Thu vien nhac nen</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">
+                Copy file MP3/WAV/M4A vao thu muc <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px">bgm_audio/</code> tren Mac mini.
+                App se tu dong liet ke, cho nghe thu va chon lam nhac nen.
+              </p>
+              <div id="musicFullList"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card glass">
+              <div class="ch">&#x1F50A; Nghe thu</div>
+              <div style="text-align:center;padding:30px;color:var(--muted2);font-size:12px" id="msph">Chon bai nhac de nghe thu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: HISTORY -->
+      <div class="page" id="pHistory">
+        <div class="card glass">
+          <div class="ch">&#x1F4CB; Video da tao</div>
+          <div id="hl" style="min-height:40px;color:var(--muted2);font-size:12px">Dang tai...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var voices=[],favs=JSON.parse(localStorage.getItem('xvf')||'[]'),sV='female_south',sM='ambient',cf=null,pi=null,ji=null,bgmFiles=[];
+document.addEventListener('DOMContentLoaded',function(){loadVoices();loadBgm();warmup()});
+
+function warmup(){fetch('/api/warmup-tts').catch(function(){})}
+function goPage(p){document.querySelectorAll('.ni').forEach(function(e){e.classList.remove('on')});
+  document.querySelectorAll('.page').forEach(function(e){e.classList.remove('on')});
+  document.getElementById('p'+p.charAt(0).toUpperCase()+p.slice(1)).classList.add('on');
+  document.querySelector('.ni[onclick*="'+p+'"]').classList.add('on');
+  var t={create:'Tao Video',voices:'Quan ly giong',music:'Am nhac',history:'Lich su'};
+  document.getElementById('pt').textContent=t[p]||p;
+  if(p==='music')loadBgm();
+  if(p==='history')loadHist();
+}
+
+async function loadVoices(){try{var r=await fetch('/api/voices');var d=await r.json();voices=d.voices||[];renderAll()}catch(e){}
+  document.getElementById('vc').textContent=voices.length+' voices';}
+function renderAll(){renderCreateVoices();renderFullVoices();renderFav()}
+
+function renderCreateVoices(){var el=document.getElementById('voiceCreateList');if(!el)return;
+  el.innerHTML='<div class="ch" style="margin-bottom:6px;font-size:12px">Chon giong</div><div class="vl" id="cvl"></div>';
+  var vl=document.getElementById('cvl');vl.innerHTML='';var fs=new Set(favs);
+  voices.forEach(function(v){vl.appendChild(mkV(v.id,v.name,v.emoji||'🎤',v.engine,v.lang||'',fs.has(v.id)))});
+  renderMusicList();renderFav();}
+
+function mkV(id,name,emoji,engine,lang,isf){var el=document.createElement('div');
+  el.className='vi'+(id===sV?' on':'');el.innerHTML='<div class="va">'+emoji+'</div><div class="vif" onclick="selV(\''+id+'\')">'+name+'</div>';
+  var a=document.createElement('div');a.className='vact';
+  var pb=document.createElement('button');pb.className='vpb';pb.textContent='▶';pb.onclick=function(e){e.stopPropagation();pV(id)};
+  a.appendChild(pb);
+  el.appendChild(a);return el;}
+function selV(id){sV=id;renderAll()}
+
+function pV(vid){var t=(vid.startsWith('female')||vid.startsWith('male'))?'Xin chao, day la giong doc tu X Video Studio.':'Hello, this is a voice preview from X Video Studio.';
+  var l=(vid.startsWith('female')||vid.startsWith('male'))?'vi':'en';
+  var a=document.getElementById('pa');a.src='/api/preview-voice?voice='+encodeURIComponent(vid)+'&text='+encodeURIComponent(t)+'&language='+l+'&t='+Date.now();a.load();a.play().catch(function(){})}
+
+function renderFullVoices(){var el=document.getElementById('fullVoiceList');if(!el)return;el.innerHTML='';var fs=new Set(favs);
+  voices.forEach(function(v){var d=document.createElement('div');d.className='vi'+(v.id===sV?' on':'');
+    var isf=fs.has(v.id);
+    d.innerHTML='<div class="va">'+(v.emoji||'🎤')+'</div><div class="vif"><div style="font-size:11px;font-weight:600">'+(v.name||v.id)+'</div><div class="vm">'+v.engine+' - '+(v.lang||'').toUpperCase()+'</div></div><div class="vact"><button class="vpb" onclick="event.stopPropagation();pV(\''+v.id+'\')">&#x25B6;</button><button class="vpb" onclick="event.stopPropagation();toggleF(\''+v.id+'\')" style="'+(isf?'color:var(--pink);border-color:rgba(255,141,161,0.24)':'')+'">'+(isf?'&#x2764;':'&#x2661;')+'</button></div>';
+    el.appendChild(d)});}
+function renderFav(){var el=document.getElementById('favList');if(!el)return;
+  var fl=voices.filter(function(v){return favs.indexOf(v.id)>=0});
+  if(fl.length){el.innerHTML='<div class="vs" style="padding:0">Giong yeu thich</div>';
+    fl.forEach(function(v){var d=document.createElement('div');d.className='vi';
+      d.innerHTML='<div class="va">'+(v.emoji||'🎤')+'</div><div class="vif" onclick="selV(\''+v.id+'\')"><div style="font-size:11px;font-weight:600;cursor:pointer">'+(v.name||v.id)+'</div></div>';
+      el.appendChild(d)})}else{el.innerHTML='<div style="font-size:10px;color:var(--muted2);padding:4px">Chua co. Click &#x2661; trong danh sach de them.</div>'}}
+function toggleF(id){var i=favs.indexOf(id);if(i>=0)favs.splice(i,1);else favs.push(id);localStorage.setItem('xvf',JSON.stringify(favs));renderAll()}
+
+function onCF(i){if(i.files&&i.files[0]){cf=i.files[0];document.getElementById('cfs').textContent=cf.name+' ('+Math.round(cf.size/1024)+'KB)'}}
+async function doClone(){if(!cf){document.getElementById('cs').textContent='Chon file ghi am truoc';return}
+  var nm=document.getElementById('cn').value.trim()||'Giong moi';var btn=document.getElementById('cbtn');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>';var fd=new FormData();fd.append('file',cf);fd.append('name',nm);
+  try{var r=await fetch('/api/clone-voice',{method:'POST',body:fd});var d=await r.json();if(d.error)throw new Error(d.error);
+    document.getElementById('cs').textContent='Da clone: '+nm;btn.disabled=false;btn.innerHTML='Clone';cf=null;document.getElementById('cn').value='';
+    document.getElementById('cfs').textContent='Chua chon file';loadVoices()
+  }catch(e){document.getElementById('cs').textContent='Loi: '+e.message;btn.disabled=false;btn.innerHTML='Clone'}}
+
+async function loadBgm(){try{var r=await fetch('/api/bgm-files');var d=await r.json();bgmFiles=d.tracks||[];renderMusicListFull()}catch(e){bgmFiles=[];renderMusicListFull()}}
+function renderMusicList(){var el=document.getElementById('musicCreateList');if(!el)return;el.innerHTML='';
+  var items=[{id:'ambient',n:'Ambient'},{id:'corporate',n:'Corporate'},{id:'tech',n:'Tech'},{id:'cinematic',n:'Cinematic'},{id:'none',n:'Khong nhac'}];
+  items.forEach(function(s){var d=document.createElement('div');d.className='mi'+(sM===s.id?' on':'');d.onclick=function(){sM=s.id;renderMusicList()};d.innerHTML='<span class="mn">'+s.n+'</span><button class="vpb" onclick="event.stopPropagation();playB(\''+s.id+'\')">&#x25B6;</button>';el.appendChild(d)});
+  bgmFiles.forEach(function(t){var d=document.createElement('div');d.className='mi'+(sM===t.id?' on':'');d.onclick=function(){sM=t.id;renderMusicList()};d.innerHTML='<span class="mn">'+t.name+' ('+t.duration+'s)</span><button class="vpb" onclick="event.stopPropagation();playB(\''+t.id+'\')">&#x25B6;</button>';el.appendChild(d)})}
+function renderMusicListFull(){var el=document.getElementById('musicFullList');if(!el)return;el.innerHTML='';var a=document.getElementById('msph');if(a)a.innerHTML='Chon bai nhac de nghe thu';
+  var items=[{id:'ambient',n:'Ambient'},{id:'corporate',n:'Corporate'},{id:'tech',n:'Tech'},{id:'cinematic',n:'Cinematic'},{id:'none',n:'Khong nhac'}];
+  items.forEach(function(s){var d=document.createElement('div');d.className='mi';d.onclick=function(){playB(s.id);};d.innerHTML='<span class="mn">'+s.n+'</span><button class="vpb" onclick="event.stopPropagation();playB(\''+s.id+'\')">&#x25B6;</button>';el.appendChild(d)});
+  if(bgmFiles.length){var sep=document.createElement('div');sep.className='vd';el.appendChild(sep);
+    bgmFiles.forEach(function(t){var d=document.createElement('div');d.className='mi';d.onclick=function(){playB(t.id)};d.innerHTML='<span class="mn">'+t.name+' ('+t.duration+'s, '+(t.size_kb/1024).toFixed(1)+'MB)</span><button class="vpb" onclick="event.stopPropagation();playB(\''+t.id+'\')">&#x25B6;</button>';el.appendChild(d)})}
+  else{var e=document.createElement('div');e.style.cssText='padding:14px;text-align:center;font-size:11px;color:var(--muted2)';
+    e.innerHTML='Chua co file nhac. Copy file MP3/WAV vao <b>bgm_audio/</b> tren Mac mini.';el.appendChild(e)}}
+function playB(id){var a=document.getElementById('pa');a.src='/api/preview-music?style='+encodeURIComponent(id)+'&t='+Date.now();a.load();a.play().catch(function(){});
+  var ph=document.getElementById('msph');if(ph)ph.innerHTML='&#x1F50A; Dang phat: '+id;}
+
+function fetchUrl(){var u=document.getElementById('url').value.trim();if(!u)return showE('Nhap URL');var b=document.getElementById('fb');
+  b.innerHTML='<span class="sp"></span>';b.disabled=true;
+  fetch('/api/prefetch?url='+encodeURIComponent(u)).then(function(r){return r.json()}).then(function(d){b.innerHTML='Lay';b.disabled=false;
+    if(d.error){showE(d.error);return}
+    var pv=document.getElementById('pv');pv.classList.add('on');
+    pv.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--accent2)">'+(d.title||'')+'</div><div style="font-size:9px;color:var(--muted2);margin:4px 0">'+(d.category||'CN')+' - '+(d.date||'')+'</div><div style="font-size:11px;color:var(--muted);line-height:1.6">'+((d.excerpt||d.content||'').substring(0,600))+'</div>';
+    var cfs=(d.content&&d.content.length>200)?d.content:(d.excerpt||'');
+    document.getElementById('script').value=cfs||d.title||'';
+    if(d.title)document.getElementById('hook').value='Tin nong: '+d.title.substring(0,50);
+    showO('Da lay noi dung!')
+  }).catch(function(e){b.innerHTML='Lay';b.disabled=false;showE('Loi: '+e.message)})}
+
+function pickC(el,id,t){el.parentElement.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');document.getElementById(id).value=t}
+function genVideo(){var u=document.getElementById('url').value.trim(),t=document.getElementById('script').value.trim();if(!u&&!t)return showE('Can URL hoac script');
+  hideA();var b=document.getElementById('sb');b.disabled=true;b.innerHTML='<span class="sp"></span> Dang tao...';document.getElementById('prc').classList.add('on');
+  var p={url:u||undefined,text:t||undefined,hook:document.getElementById('hook').value.trim(),cta:document.getElementById('cta').value.trim(),
+    voice:sV,speed:document.getElementById('speed').value,style:document.getElementById('style').value,music:sM,aspect:document.getElementById('aspect').value,
+    resolution:document.getElementById('res').value,language:(sV.startsWith('female')||sV.startsWith('male'))?'vi':'en'};
+  fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json()}).then(function(d){ji=d.job_id;poll()}).catch(function(e){b.disabled=false;b.innerHTML='TAO VIDEO';showE('Loi: '+e.message)})}
+
+function poll(){clearInterval(pi);pi=setInterval(function(){fetch('/api/jobs/'+ji).then(function(r){return r.json()}).then(function(j){
+  if(j.status==='queued'||j.status==='processing'){setP(j.progress||5)}else if(j.status==='done'){clearInterval(pi);setP(100);showV(j);
+    document.getElementById('sb').disabled=false;document.getElementById('sb').innerHTML='TAO VIDEO';document.getElementById('prc').classList.remove('on');showO('Video hoan tat!')
+  }else if(j.status==='error'){clearInterval(pi);showE(j.error||'Loi');document.getElementById('sb').disabled=false;document.getElementById('sb').innerHTML='TAO VIDEO';document.getElementById('prc').classList.remove('on')}})},1000)}
+function setP(p){document.getElementById('prf').style.width=p+'%';var m=['Bat dau...','Dang tai noi dung...','Giong doc...','Nhac nen...','Render...','Xong!'];document.getElementById('prt').textContent=m[Math.min(5,Math.floor(p/20))]}
+function showV(j){document.getElementById('pph').style.display='none';document.getElementById('vpc').style.display='block';var v=document.getElementById('vp');
+  v.src='/output/'+(j.video_path||'');v.load();document.getElementById('stats').style.display='grid';
+  document.getElementById('sD').textContent=(j.duration||'---')+'s';document.getElementById('sS').textContent=((j.size_kb||0)/1024).toFixed(1)+'MB';
+  document.getElementById('sW').textContent=j.word_count||'---';document.getElementById('sR').textContent=j.tts_rate||'---';
+  document.getElementById('vact').style.display='block';document.getElementById('dl').href='/output/'+(j.video_path||'')}
+function setP(p){document.getElementById('prf').style.width=p+'%';var m=['Bat dau...','Dang tai...','Giong doc...','Nhac nen...','Render...','Xong!'];document.getElementById('prt').textContent=m[Math.min(5,Math.floor(p/20))]}
+
+function loadHist(){var el=document.getElementById('hl');if(!el)return;fetch('/api/jobs').then(function(r){return r.json()}).then(function(d){
+  var j=d.jobs||{},k=Object.keys(j);if(!k.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--muted2)">Chua co video nao.</div>';return}
+  var h='';k.sort().reverse().slice(0,20).forEach(function(kk){var v=j[kk];h+='<div style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);margin-bottom:4px">'+
+    '<div style="font-size:11px;font-weight:600">'+(v.title||kk.substring(0,12))+'</div>'+
+    '<div style="font-size:9px;color:var(--muted2)">'+v.status+(v.video_path?' - <a href="/output/'+v.video_path+'" style="color:var(--accent2)">Xem</a>':'')+'</div></div>'});
+  el.innerHTML=h}).catch(function(){el.innerHTML='<div style="padding:14px;color:var(--muted2)">Loi tai du lieu.</div>'})}
+
+function showE(m){var e=document.getElementById('err');e.textContent=m;e.classList.add('on')}
+function showO(m){var e=document.getElementById('ok');e.textContent=m;e.classList.add('on');setTimeout(function(){e.classList.remove('on')},4000)}
+function hideA(){document.getElementById('err').classList.remove('on');document.getElementById('ok').classList.remove('on')}
+</script>
+</body>
+</html>

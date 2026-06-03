@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Voice Library</title>
+<style>
+@font-face{font-family:Inter;src:url(/static/fonts/Inter-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Inter;src:url(/static/fonts/Inter-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:Inter;src:url(/static/fonts/Inter-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{background:#121318;color:#e3e1e9;min-height:100vh;padding:16px}
+
+.header{display:flex;align-items:center;gap:12px;padding:10px 0 16px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:16px;flex-wrap:wrap}
+.header h1{font-size:18px;font-weight:700;color:#44d8f1;display:flex;align-items:center;gap:8px}
+.header h1 img{width:24px;height:24px;border-radius:6px}
+
+#ttsStatus{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+#ttsStatus .dot{width:6px;height:6px;border-radius:50%;background:#f59e0b}
+#ttsStatus.online .dot{background:#5ee3a1;box-shadow:0 0 6px #5ee3a1}
+#ttsStatus.online{border-color:rgba(94,227,161,.3);color:#5ee3a1}
+#ttsStatus.offline .dot{background:#ff4d4d;box-shadow:0 0 4px #ff4d4d}
+#ttsStatus.offline{border-color:rgba(255,77,77,.3);color:#ff4d4d}
+
+.engine-bar{display:flex;align-items:center;gap:8px;margin-left:auto}
+.engine-bar label{font-size:10px;color:#bbc9cc}
+.engine-bar select,.engine-bar input{padding:4px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#e3e1e9;font-size:10px;font-family:inherit;outline:none}
+.engine-bar select:focus,.engine-bar input:focus{border-color:#44d8f1}
+.engine-bar button{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,#00bcd4,#44d8f1);color:#0d0e13;font-family:inherit}
+.engine-bar button:hover{filter:brightness(1.1)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px}
+.card:hover{border-color:rgba(68,216,241,.3)}
+.card .name{font-size:13px;font-weight:700;margin-bottom:6px}
+.card .meta{display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:9px;color:#bbc9cc;margin-bottom:8px}
+.card .meta span{color:#e3e1e9;font-weight:600}
+.card .tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.card .tags .tag{font-size:8px;padding:1px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.1);color:#bbc9cc}
+.card .actions{display:flex;gap:3px}
+.card .actions button{flex:1;padding:3px;border-radius:5px;font-size:9px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#bbc9cc;font-family:inherit}
+.card .actions button:hover{background:rgba(255,255,255,.1);color:#e3e1e9}
+.card .actions .play:hover{color:#44d8f1;border-color:rgba(68,216,241,.3)}
+.card .actions .fav{color:#f59e0b;border-color:rgba(245,158,11,.2)}
+.card .actions .fav.on{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.5)}
+.card .actions .del:hover{color:#ffb4ab;border-color:rgba(255,180,171,.3)}
+
+.msg{padding:6px 10px;border-radius:8px;font-size:10px;margin:8px 0;display:none}
+.msg.show{display:block}
+.msg.ok{background:rgba(94,227,161,.08);color:#5ee3a1;border:1px solid rgba(94,227,161,.15)}
+.msg.err{background:rgba(255,180,171,.08);color:#ffb4ab;border:1px solid rgba(255,180,171,.15)}
+
+.empty{text-align:center;padding:40px;color:#869396;font-size:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1><img src="/static/logo-xvideo.png" alt="X"> Voice Library</h1>
+  <div id="ttsStatus"><span class="dot"></span> Kiểm tra...</div>
+  <div class="engine-bar">
+    <label>Thử TTS:</label>
+    <select id="ttsEngine"><option value="vieneu">VieNeu</option><option value="omnivoice">OmniVoice</option><option value="valtec">Valtec</option></select>
+    <input type="text" id="ttsText" value="Xin chào" size="15">
+    <button onclick="testTTS()">▶</button>
+  </div>
+</div>
+<div class="msg" id="msg"></div>
+<div class="grid" id="grid"><div class="empty">Đang tải...</div></div>
+
+<script>
+var voices=[],currentAudio=null;
+
+// All API calls go through same-origin proxy
+var API='/api/voice-library';
+
+function $(id){return document.getElementById(id)}
+function show(m,cls){
+  var e=$('msg');e.textContent=m;e.className='msg show '+cls;
+  setTimeout(function(){e.className='msg'},3000);
+}
+
+// Load voices
+async function load(){
+  try{
+    var r=await fetch(API+'/voices');
+    var d=await r.json();
+    voices=d.voices||[];
+    render();
+  }catch(e){$('grid').innerHTML='<div class="empty">Lỗi: '+e.message+'</div>'}
+}
+
+// Render grid
+function render(){
+  if(!voices.length){$('grid').innerHTML='<div class="empty">Chưa có giọng nào</div>';return}
+  
+  var h='';
+  voices.forEach(function(v){
+    var tags=[];
+    if(v.language)tags.push('🌐 '+v.language);
+    if(v.gender)tags.push(v.gender==='male'?'♂ Nam':'♀ Nữ');
+    if(v.engine)tags.push(v.engine);
+    var fav=v.is_favorite?' on':'';
+    
+    h+='<div class="card">';
+    h+='<div class="name">'+v.name+'</div>';
+    h+='<div class="meta"><div>Nguồn: <span>'+ (v.source==='clone'?'Clone':'Built-in')+'</span></div><div>Engine: <span>'+v.engine+'</span></div></div>';
+    h+='<div class="tags">'+tags.map(function(t){return '<span class="tag">'+t+'</span>'}).join('')+'</div>';
+    h+='<div class="actions">';
+    h+='<button class="play" onclick="play(\''+v.id+'\')">▶ Play</button>';
+    h+='<button class="fav '+fav+'" onclick="fav(\''+v.id+'\')">⭐</button>';
+    h+='<button class="del" onclick="del(\''+v.id+'\')">🗑</button>';
+    h+='</div></div>';
+  });
+  $('grid').innerHTML=h;
+}
+
+// Preview voice
+async function play(id){
+  if(currentAudio){currentAudio.pause();currentAudio=null}
+  try{
+    // Use direct preview-voice endpoint (works for built-in + cloned)
+    var r=await fetch('/api/preview-voice?voice='+id+'&language='+(id.startsWith('female')?'vi':'en'));
+    if(!r.ok)throw new Error(r.status);
+    var blob=await r.blob();
+    var url=URL.createObjectURL(blob);
+    var a=new Audio(url);
+    a.play();currentAudio=a;
+  }catch(e){show('Preview lỗi: '+e.message,'err')}
+}
+
+// Toggle favorite
+async function fav(id){
+  try{
+    var r=await fetch(API+'/voices/'+id+'/favorite',{method:'POST'});
+    var d=await r.json();
+    var v=voices.find(function(x){return x.id===id});
+    if(v)v.is_favorite=d.is_favorite;
+    render();
+    show(d.is_favorite?'Đã yêu thích':'Đã bỏ yêu thích','ok');
+  }catch(e){show('Lỗi: '+e.message,'err')}
+}
+
+// Delete voice  
+async function del(id){
+  if(!confirm('Xóa giọng này?'))return;
+  try{
+    var r=await fetch(API+'/voices/'+id,{method:'DELETE'});
+    var d=await r.json();
+    if(d.success||d.detail==='OK'){
+      voices=voices.filter(function(v){return v.id!==id});
+      render();
+      show('Đã xóa','ok');
+    }else{show('Xóa thất bại','err')}
+  }catch(e){show('Lỗi: '+e.message,'err')}
+}
+
+// Test TTS engine
+async function testTTS(){
+  var engine=$('ttsEngine').value;
+  var text=$('ttsText').value.trim()||'Xin chào';
+  if(currentAudio){currentAudio.pause();currentAudio=null}
+  try{
+    var r=await fetch('/api/try-tts',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text,engine:engine,voice:'female_south',lang:'vi'})
+    });
+    if(!r.ok)throw new Error(await r.text());
+    var blob=await r.blob();
+    var url=URL.createObjectURL(blob);
+    var a=new Audio(url);
+    a.play();currentAudio=a;
+    show('Đang phát từ '+engine,'ok');
+  }catch(e){show('TTS lỗi: '+e.message,'err')}
+}
+
+// Check TTS status
+async function checkStatus(){
+  try{
+    var r=await fetch(API+'/status');
+    var d=await r.json();
+    var st=$('ttsStatus');
+    if(d.overall==='all_connected'){
+      st.className='online';st.innerHTML='<span class="dot"></span> TTS Online';
+    }else{
+      var ok=0,total=0;
+      for(var k in d.services||{}){total++;if(d.services[k].status==='connected')ok++}
+      if(ok>0){st.className='';st.innerHTML='<span class="dot"></span> TTS: '+ok+'/'+total}
+      else{st.className='offline';st.innerHTML='<span class="dot"></span> TTS Offline'}
+    }
+  }catch(e){$('ttsStatus').className='offline';$('ttsStatus').innerHTML='<span class="dot"></span> Offline'}
+}
+
+load();
+checkStatus();
+setInterval(checkStatus,30000);
+</script>
+</body></html>

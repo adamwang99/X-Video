@@ -19,7 +19,8 @@
     "gender": "female",
     "sample_path": "",
     "created_at": "2026-01-01",
-    "size_bytes": 0
+    "size_bytes": 0,
+    "is_favorite": true
   },
   "male_south": {
     "id": "male_south",
@@ -52,7 +53,8 @@
     "gender": "female",
     "sample_path": "",
     "created_at": "2026-01-01",
-    "size_bytes": 0
+    "size_bytes": 0,
+    "is_favorite": false
   },
   "Karen": {
     "id": "Karen",
@@ -63,7 +65,8 @@
     "gender": "female",
     "sample_path": "",
     "created_at": "2026-01-01",
-    "size_bytes": 0
+    "size_bytes": 0,
+    "is_favorite": true
   },
   "Daniel": {
     "id": "Daniel",
