@@ -21,10 +21,10 @@ PROJECT_DIR = Path(__file__).parent.parent / "render-project"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Resolution map
-RES_MAP = {"hd": (720, 1280), "fhd": (1080, 1920), "2k": (1440, 2560), "4k": (2160, 3840)}
-# Aspect -> (w, h) for portrait
-ASPECT_MAP = {"doc": (1080, 1920), "ngang": (1920, 1080), "vuong": (1080, 1080)}
+# Resolution -> height multiplier (portrait height)
+RES_MAP = {"hd": 720, "fhd": 1080, "2k": 1440, "4k": 2160}
+# Aspect -> (w, h) for portrait — base at 1080p
+ASPECT_MAP = {"doc": (9, 16), "ngang": (16, 9), "vuong": (1, 1)}
 # Music styles
 BGM_MAP = {
     "ambient": [(220, 0.12), (330, 0.08), (440, 0.06)],
@@ -129,8 +129,11 @@ def generate_bgm(music_style, duration, output_path):
     filter_cmd = f'[0:a][1:a][2:a]amix=inputs={len(tones)}:duration=first:weights={weights},afade=t=in:d=1,afade=t=out:st={duration-2}:d=2,volume=0.07'
     subprocess.run(f'ffmpeg -y {inputs} -filter_complex "{filter_cmd}" -acodec libmp3lame -b:a 64k {output_path}'.split(), capture_output=True, timeout=30)
 
-def make_html(aspect, title, date_str, duration, voice_path, bgm_path, style="news"):
-    w, h = ASPECT_MAP.get(aspect, (1080, 1920))
+def make_html(aspect, title, date_str, duration, voice_path, bgm_path, style="news", resolution="fhd"):
+    ar_w, ar_h = ASPECT_MAP.get(aspect, (9, 16))
+    base_h = RES_MAP.get(resolution, 1080)
+    h = base_h
+    w = int(h * ar_w / ar_h)
     pct = lambda p: int(h * p)
 
     style_desc = {"news":"📺 BẢN TIN","reportage":"🎬 PHÓNG SỰ","analysis":"📊 PHÂN TÍCH","story":"📖 CÂU CHUYỆN","tutorial":"🎓 HƯỚNG DẪN","hot":"🔥 TIN NÓNG"}
@@ -215,7 +218,7 @@ def process_job(jid: str, req: GenerateRequest):
         generate_bgm(req.music, duration, jd/"bgm.mp3")
 
         with jobs_lock: jobs[jid] = {"status":"processing","progress":55}
-        html = make_html(req.aspect, title, date_str, duration, "voice.mp3", "bgm.mp3", req.style)
+        html = make_html(req.aspect, title, date_str, duration, "voice.mp3", "bgm.mp3", req.style, req.resolution)
         with open(jd/"index.html","w") as f: f.write(html)
         with open(jd/"hyperframes.json","w") as f:
             json.dump({"$schema":"https://hyperframes.heygen.com/schema/hyperframes.json","paths":{"blocks":"compositions","components":"compositions/components","assets":"assets"}}, f)
