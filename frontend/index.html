@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>X-Video — AI World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #8b5cf6;
+      --bg: #0a0a1a;
+      --bg-card: #12122a;
+      --border: rgba(99,102,241,0.15);
+      --text: #e2e8f0;
+      --text-dim: rgba(255,255,255,0.5);
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(99,102,241,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.04) 0%, transparent 50%);
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+    /* Header */
+    header {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 48px;
+    }
+    .logo {
+      font-size: 28px; font-weight: 900;
+      color: var(--primary); letter-spacing: 2px;
+    }
+    .logo-x {
+      font-size: 32px; font-weight: 900;
+      color: var(--accent); letter-spacing: -1px;
+    }
+    header .subtitle {
+      margin-left: auto;
+      font-size: 14px; font-weight: 400;
+      color: var(--text-dim);
+    }
+
+    /* Hero */
+    .hero { margin-bottom: 48px; }
+    .hero h1 {
+      font-size: 48px; font-weight: 900;
+      line-height: 1.1; letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .hero h1 .highlight { color: var(--primary); }
+    .hero p {
+      font-size: 20px; font-weight: 300;
+      color: var(--text-dim); line-height: 1.5;
+      max-width: 640px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 18px; font-weight: 600;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .badge {
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: rgba(99,102,241,0.12);
+      color: var(--primary);
+    }
+
+    /* Form */
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block; font-size: 14px; font-weight: 600;
+      margin-bottom: 8px; color: rgba(255,255,255,0.8);
+    }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 12px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .form-group select { cursor: pointer; }
+    .form-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px;
+      border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600;
+      font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.3); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Progress */
+    .progress-bar {
+      width: 100%; height: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 3px; overflow: hidden;
+      margin: 16px 0;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 3px; transition: width 0.5s ease;
+    }
+    .progress-text {
+      font-size: 14px; font-weight: 500;
+      color: var(--text-dim);
+      text-align: center; margin: 8px 0;
+    }
+
+    /* Video Output */
+    .video-output { display: none; }
+    .video-output.show { display: block; }
+    .video-output video {
+      width: 100%; border-radius: 12px;
+      background: #000;
+    }
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px; margin: 20px 0;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      text-align: center;
+    }
+    .stat-card .value {
+      font-size: 24px; font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-card .label {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-dim); margin-top: 4px;
+    }
+
+    /* Error */
+    .error-message {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px; padding: 16px;
+      color: #fca5a5; margin: 16px 0;
+    }
+    .error-message.show { display: block; }
+
+    /* Steps */
+    .steps {
+      display: flex; gap: 8px; margin-bottom: 24px;
+    }
+    .step {
+      flex: 1; padding: 16px; border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    .step.active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+    .step.done { border-color: var(--success); background: rgba(34,197,94,0.06); }
+    .step-num {
+      width: 28px; height: 28px; line-height: 28px;
+      border-radius: 50%; background: rgba(255,255,255,0.06);
+      font-size: 13px; font-weight: 700;
+      margin: 0 auto 8px;
+    }
+    .step.active .step-num { background: var(--primary); color: #fff; }
+    .step.done .step-num { background: var(--success); color: #fff; }
+    .step-label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+
+    /* Jobs history */
+    .job-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .job-item:last-child { border-bottom: none; }
+    .job-status { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+    .job-status.done { background: rgba(34,197,94,0.12); color: var(--success); }
+    .job-status.processing { background: rgba(99,102,241,0.12); color: var(--primary); }
+    .job-status.error { background: rgba(239,68,68,0.12); color: var(--error); }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 32px; }
+      .form-row { grid-template-columns: 1fr; }
+      .container { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div><span class="logo-x">X</span><span class="logo">-VIDEO</span></div>
+      <div class="subtitle">by AI World</div>
+    </header>
+
+    <div class="hero">
+      <h1>URL → <span class="highlight">Video</span> trong tích tắc</h1>
+      <p>Dán link bài viết hoặc nhập nội dung, chọn khổ và giọng đọc — X-Video tự động tạo video chất lượng cao có âm thanh, sẵn sàng đăng tải.</p>
+    </div>
+
+    <div class="steps" id="steps">
+      <div class="step" id="step-1"><div class="step-num">1</div><div class="step-label">Nhập nội dung</div></div>
+      <div class="step" id="step-2"><div class="step-num">2</div><div class="step-label">TTS + Nhạc nền</div></div>
+      <div class="step" id="step-3"><div class="step-num">3</div><div class="step-label">Render video</div></div>
+      <div class="step" id="step-4"><div class="step-num">4</div><div class="step-label">Hoàn tất</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Tạo video mới <span class="badge">Beta</span></div>
+
+      <div class="form-group">
+        <label for="url">URL bài viết (WordPress AI World)</label>
+        <input type="url" id="url" placeholder="https://192.168.1.9:8080/vi/ten-bai-viet/"/>
+      </div>
+
+      <div style="text-align:center; color:var(--text-dim); font-size:13px; margin:12px 0;">— hoặc —</div>
+
+      <div class="form-group">
+        <label for="text">Nhập trực tiếp nội dung</label>
+        <textarea id="text" placeholder="Paste nội dung bài viết vào đây..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="aspect">Khổ video</label>
+          <select id="aspect">
+            <option value="doc">📱 Dọc 9:16 — TikTok/Reels</option>
+            <option value="ngang">🖥 Ngang 16:9 — YouTube</option>
+            <option value="vuong">📐 Vuông 1:1 — Instagram</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="voice">Giọng đọc</label>
+          <select id="voice">
+            <option value="Samantha">Samantha (English - Mỹ)</option>
+            <option value="Karen">Karen (English - Úc)</option>
+            <option value="Daniel">Daniel (English - Anh)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn" onclick="generate()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 3l14 9-14 9V3z"/>
+        </svg>
+        Tạo Video
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="card" id="progressCard" style="display:none;">
+      <div class="card-title" id="progressTitle">Đang xử lý...</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">Khởi tạo...</div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-message" id="errorMsg"></div>
+
+    <!-- Video Output -->
+    <div class="card video-output" id="videoOutput">
+      <div class="card-title">Video hoàn tất <span class="badge" style="background:rgba(34,197,94,0.12);color:var(--success);">✅ DONE</span></div>
+      <video id="videoPlayer" controls playsinline></video>
+      <div class="stats" id="stats"></div>
+      <a id="downloadBtn" class="btn btn-primary" style="margin-top:16px;" download>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Tải video
+      </a>
+      <div id="shareLink" style="margin-top:12px; font-size:13px; color:var(--text-dim);">
+        <span>Link xem online: </span><a id="onlineLink" target="_blank" style="color:var(--primary);"></a>
+      </div>
+    </div>
+
+    <!-- Jobs History -->
+    <div class="card">
+      <div class="card-title">Lịch sử</div>
+      <div id="jobsList">
+        <div style="text-align:center;color:var(--text-dim);padding:24px;">Chưa có video nào</div>
+      </div>
+    </div>
+
+    <footer style="text-align:center; padding:40px 0; color:var(--text-dim); font-size:13px;">
+      X-Video &copy; 2026 AI World — Chạy trên Macmini M4 · Apache 2.0
+    </footer>
+  </div>
+
+  <script>
+    let polling = null;
+    let currentJobId = null;
+
+    function generate() {
+      const url = document.getElementById('url').value.trim();
+      const text = document.getElementById('text').value.trim();
+      const aspect = document.getElementById('aspect').value;
+      const voice = document.getElementById('voice').value;
+
+      if (!url && !text) {
+        showError('Vui lòng nhập URL hoặc nội dung');
+        return;
+      }
+
+      hideError();
+      document.getElementById('progressCard').style.display = 'block';
+      document.getElementById('videoOutput').classList.remove('show');
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('submitBtn').innerHTML = '<span class="pulse">⏳</span> Đang tạo...';
+
+      setStepActive(1);
+
+      const body = {};
+      if (url) body.url = url;
+      if (text) body.text = text;
+      body.aspect = aspect;
+      body.voice = voice;
+
+      fetch('/api/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      })
+      .then(r => r.json())
+      .then(data => {
+        currentJobId = data.job_id;
+        setStepActive(2);
+        pollJob(data.job_id);
+      })
+      .catch(err => {
+        showError('Lỗi: ' + err.message);
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('submitBtn').innerHTML = 'Tạo Video';
+      });
+    }
+
+    function pollJob(jobId) {
+      if (polling) clearInterval(polling);
+      let progress = 0;
+
+      polling = setInterval(() => {
+        fetch('/api/jobs/' + jobId)
+        .then(r => r.json())
+        .then(job => {
+          if (job.status === 'processing') {
+            const p = job.progress || 0;
+            if (p >= 30) setStepActive(2);
+            if (p >= 50) setStepActive(3);
+            updateProgress(p);
+            progress = p;
+          } else if (job.status === 'done') {
+            clearInterval(polling);
+            updateProgress(100);
+            setStepActive(4);
+            showVideo(job);
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = 'Tạo Video';
+            loadJobs();
+          } else if (job.status === 'error') {
+            clearInterval(polling);
+            showError(job.error || 'Lỗi không xác định');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = 'Tạo Video';
+          }
+        })
+        .catch(() => {});
+      }, 1000);
+    }
+
+    function updateProgress(p) {
+      document.getElementById('progressFill').style.width = p + '%';
+      const labels = ['Khởi tạo...', 'Đang tải nội dung...', 'Tạo giọng đọc + nhạc...', 'Đang render video...', 'Hoàn tất!'];
+      const idx = Math.min(4, Math.floor(p / 25));
+      document.getElementById('progressText').textContent = labels[idx];
+    }
+
+    function showVideo(job) {
+      const div = document.getElementById('videoOutput');
+      div.classList.add('show');
+      
+      const player = document.getElementById('videoPlayer');
+      const videoUrl = '/output/' + job.video_path;
+      player.src = videoUrl;
+      player.load();
+
+      document.getElementById('downloadBtn').href = videoUrl;
+      document.getElementById('onlineLink').href = window.location.origin + videoUrl;
+      document.getElementById('onlineLink').textContent = window.location.origin + videoUrl;
+
+      // Stats
+      const stats = document.getElementById('stats');
+      stats.innerHTML = '';
+      const items = [
+        {value: job.duration + 's', label: 'Thời lượng'},
+        {value: (job.size_kb / 1024).toFixed(1) + 'MB', label: 'Dung lượng'},
+        {value: job.word_count || '—', label: 'Từ'},
+        {value: job.tts_rate || '—', label: 'Tốc độ (wpm)'}
+      ];
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'stat-card';
+        div.innerHTML = '<div class="value">' + item.value + '</div><div class="label">' + item.label + '</div>';
+        stats.appendChild(div);
+      });
+
+      // Scroll to video
+      setTimeout(() => div.scrollIntoView({ behavior: 'smooth' }), 500);
+    }
+
+    function setStepActive(num) {
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById('step-' + i);
+        el.className = 'step';
+        if (i < num) el.classList.add('done');
+        if (i === num) el.classList.add('active');
+      }
+    }
+
+    function loadJobs() {
+      fetch('/api/jobs').then(r => r.json()).then(data => {
+        const list = document.getElementById('jobsList');
+        const entries = Object.entries(data.jobs || {});
+        if (entries.length === 0) {
+          list.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:24px;">Chưa có video nào</div>';
+          return;
+        }
+        list.innerHTML = entries.slice(-10).reverse().map(([id, job]) => {
+          const statusClass = job.status === 'done' ? 'done' : job.status === 'processing' ? 'processing' : 'error';
+          const statusText = job.status === 'done' ? '✅ Hoàn tất' : job.status === 'processing' ? '⏳ Đang xử lý' : '❌ Lỗi';
+          const title = job.title || id.slice(0, 12) + '...';
+          return '<div class="job-item">' +
+            '<span class="job-status ' + statusClass + '">' + statusText + '</span>' +
+            '<span style="flex:1;">' + title.slice(0, 50) + '</span>' +
+            (job.status === 'done' ? '<a href="/output/' + (job.video_path || '') + '" style="color:var(--primary);font-size:13px;">Xem</a>' : '') +
+            '</div>';
+        }).join('');
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+
+    function hideError() {
+      document.getElementById('errorMsg').classList.remove('show');
+    }
+
+    // Load on page init
+    loadJobs();
+  </script>
+</body>
+</html>
