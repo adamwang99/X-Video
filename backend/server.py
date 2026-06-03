@@ -274,6 +274,18 @@ def get_voices():
     ]
     return {"voices": voices}
 
+@app.get("/api/preview-voice")
+def preview_voice(voice: str, text: str = "Xin chào, đây là giọng đọc của X Video Studio", language: str = "vi"):
+    """Quick voice preview - generates MP3 from TTS without video pipeline"""
+    tdir = PROJECT_DIR / "preview"
+    tdir.mkdir(parents=True, exist_ok=True)
+    out = tdir / f"preview_{hashlib.md5(f'{voice}{text}'.encode()).hexdigest()[:8]}.mp3"
+    if not out.exists():
+        generate_voice(text, voice, out, language)
+    return FileResponse(str(out), media_type="audio/mp3",
+                       headers={"Access-Control-Allow-Origin": "*",
+                                "Content-Disposition": "inline"})
+
 @app.post("/api/generate", status_code=201)
 def generate(req: GenerateRequest, bg: BackgroundTasks):
     if not req.url and not req.text:

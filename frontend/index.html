@@ -4,467 +4,284 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>X-Video Studio — AI World</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
   <style>
     :root {
-      --indigo-400: #818cf8;
-      --indigo-500: #6366f1;
-      --indigo-600: #4f46e5;
-      --violet-400: #a78bfa;
-      --violet-500: #8b5cf6;
-      --cyan-400: #22d3ee;
-      --cyan-500: #06b6d4;
+      --indigo-400: #818cf8; --indigo-500: #6366f1; --indigo-600: #4f46e5;
+      --violet-400: #a78bfa; --violet-500: #8b5cf6;
+      --cyan-400: #22d3ee; --cyan-500: #06b6d4;
       --bg-deep: #030712;
-      --bg-surface: rgba(15, 23, 42, 0.75);
-      --bg-card: rgba(30, 41, 59, 0.55);
-      --bg-card-hover: rgba(30, 41, 59, 0.72);
-      --border-glass: rgba(99, 102, 241, 0.12);
-      --border-active: rgba(99, 102, 241, 0.35);
+      --bg-surface: rgba(15, 23, 42, 0.78);
+      --bg-card: rgba(23, 37, 64, 0.58);
+      --border-glass: rgba(99, 102, 241, 0.10);
+      --border-active: rgba(139, 92, 246, 0.35);
       --text-primary: #e2e8f0;
-      --text-secondary: rgba(148, 163, 184, 0.85);
-      --text-dim: rgba(148, 163, 184, 0.45);
-      --success: #22c55e;
-      --error: #ef4444;
-      --radius: 14px;
-      --radius-sm: 10px;
-      --glass-blur: 20px;
+      --text-secondary: rgba(148, 163, 184, 0.88);
+      --text-dim: rgba(148, 163, 184, 0.42);
+      --success: #22c55e; --error: #ef4444;
+      --radius: 16px; --radius-sm: 12px;
     }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden;
+    }
+    .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse 120% 80% at 10% 0%,rgba(99,102,241,.07),transparent 55%),
+      radial-gradient(ellipse 100% 70% at 85% 20%,rgba(139,92,246,.05),transparent 50%),
+      radial-gradient(ellipse 80% 60% at 50% 80%,rgba(6,182,212,.04),transparent 45%),
+      radial-gradient(ellipse 60% 40% at 30% 50%,rgba(99,102,241,.04),transparent 40%);}
+    .orb{position:fixed;border-radius:50%;filter:blur(130px);opacity:.06;pointer-events:none;z-index:0}
+    .orb-1{width:600px;height:600px;top:-120px;left:-120px;background:var(--indigo-500);animation:aurora 14s ease-in-out infinite}
+    .orb-2{width:420px;height:420px;bottom:5%;right:-60px;background:var(--violet-500);animation:aurora 17s ease-in-out infinite reverse}
+    .orb-3{width:320px;height:320px;top:40%;left:45%;background:var(--cyan-500);animation:aurora 20s ease-in-out infinite}
+    @keyframes aurora{0%,100%{transform:translate(0,0)scale(1)}33%{transform:translate(50px,-40px)scale(1.1)}66%{transform:translate(-30px,30px)scale(.94)}}
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg-deep);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    .app{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:24px 20px}
 
-    /* Aurora background */
-    .aurora-bg {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background:
-        radial-gradient(ellipse 120% 80% at 10% 0%, rgba(99, 102, 241, 0.06) 0%, transparent 55%),
-        radial-gradient(ellipse 100% 70% at 85% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
-        radial-gradient(ellipse 80% 60% at 50% 80%, rgba(6, 182, 212, 0.03) 0%, transparent 45%),
-        radial-gradient(ellipse 60% 40% at 30% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 40%);
+    /* HEADER — glass bar */
+    .header{position:sticky;top:10px;z-index:10;margin-bottom:20px}
+    .header-bar{
+      display:flex;align-items:center;gap:14px;padding:12px 24px;
+      background:var(--bg-surface);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--border-glass);border-radius:var(--radius);
     }
-    .aurora-orb {
-      position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.08; pointer-events: none; z-index: 0;
-    }
-    .aurora-orb-1 { width: 600px; height: 600px; top: -100px; left: -100px; background: var(--indigo-500); animation: auroraFloat 12s ease-in-out infinite; }
-    .aurora-orb-2 { width: 400px; height: 400px; bottom: 10%; right: -80px; background: var(--violet-500); animation: auroraFloat 15s ease-in-out infinite reverse; }
-    .aurora-orb-3 { width: 300px; height: 300px; top: 45%; left: 40%; background: var(--cyan-500); animation: auroraFloat 18s ease-in-out infinite; }
-    @keyframes auroraFloat {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(40px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.95); }
-    }
+    .header-logo-img{width:48px;height:48px;border-radius:14px;object-fit:cover}
+    .header-title{font-size:22px;font-weight:800;color:var(--violet-400);letter-spacing:-.5px}
+    .header-x{color:var(--indigo-400);font-size:26px}
+    .header-badge{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:600;margin-left:auto}
+    .badge-ver{background:rgba(99,102,241,.10);color:var(--indigo-400);border:1px solid rgba(99,102,241,.15)}
+    .badge-gpu{background:rgba(34,211,238,.06);color:var(--cyan-400);border:1px solid rgba(34,211,238,.12)}
 
-    .app { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 28px 24px; }
+    /* LAYOUT */
+    .main-grid{display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start}
+    @media(max-width:1100px){.main-grid{grid-template-columns:1fr}}
 
-    /* Header — glass bar */
-    .header { position: sticky; top: 0; z-index: 10; padding: 16px 0 20px; }
-    .header-inner {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 22px;
-      background: var(--bg-surface);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius);
+    /* GLASS CARD */
+    .card{
+      background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border-glass);border-radius:var(--radius);padding:22px 24px;margin-bottom:14px;
+      transition:all .2s ease;
     }
-    .header-logo { font-size: 24px; font-weight: 900; color: var(--violet-400); letter-spacing: -1px; }
-    .header-logo-x { color: var(--indigo-400); }
-    .header-subtitle { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-dim); letter-spacing: 0.5px; }
-    .header-version {
-      font-size: 11px; padding: 3px 10px; border-radius: 6px;
-      background: rgba(99, 102, 241, 0.12); color: var(--indigo-400);
-      border: 1px solid var(--border-glass);
-    }
-    .header-machine {
-      font-size: 11px; padding: 3px 10px; border-radius: 6px;
-      background: rgba(34, 211, 238, 0.08); color: var(--cyan-400);
-      border: 1px solid rgba(34, 211, 238, 0.12);
-    }
+    .card:hover{border-color:rgba(139,92,246,.15)}
+    .card-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+    .card-title{font-size:14px;font-weight:600;letter-spacing:-.2px}
 
-    /* Glass Card */
-    .card {
-      background: var(--bg-card);
-      backdrop-filter: blur(var(--glass-blur));
-      -webkit-backdrop-filter: blur(var(--glass-blur));
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius);
-      padding: 26px;
-      margin-bottom: 18px;
-      transition: all 0.25s ease;
+    /* FORM */
+    .field{margin-bottom:14px}
+    .field-label{display:block;font-size:11px;font-weight:600;margin-bottom:5px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+    .field-input,.field-select,.field-textarea{
+      width:100%;padding:10px 14px;background:rgba(15,23,42,.55);
+      border:1px solid var(--border-glass);border-radius:var(--radius-sm);
+      color:var(--text-primary);font-size:13px;font-family:inherit;transition:all .2s;
     }
-    .card-header {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 22px;
-    }
-    .card-icon { font-size: 18px; opacity: 0.8; }
-    .card-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
-    .card-badge {
-      font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 6px;
-      background: rgba(99, 102, 241, 0.12); color: var(--indigo-400);
-      border: 1px solid var(--border-glass);
-    }
+    .field-input:focus,.field-select:focus,.field-textarea:focus{outline:none;border-color:var(--border-active);box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+    .field-textarea{min-height:80px;resize:vertical}
+    .field-select{cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 
-    /* Layout */
-    .studio-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; align-items: start; }
-    @media (max-width: 1024px) { .studio-layout { grid-template-columns: 1fr; } }
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    @media(max-width:768px){.row-2,.row-3{grid-template-columns:1fr}}
 
-    /* Form fields */
-    .field { margin-bottom: 16px; }
-    .field-label {
-      display: block; font-size: 12px; font-weight: 600;
-      margin-bottom: 6px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px;
-    }
-    .field-input, .field-select, .field-textarea {
-      width: 100%; padding: 11px 14px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary); font-size: 13.5px;
-      font-family: inherit; transition: all 0.2s ease;
-    }
-    .field-input:focus, .field-select:focus, .field-textarea:focus {
-      outline: none;
-      border-color: var(--border-active);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-    .field-textarea { min-height: 100px; resize: vertical; }
-    .field-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
-    .field-select option { background: #1e293b; color: #e2e8f0; }
+    /* CHIPS */
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{padding:7px 14px;border-radius:20px;border:1px solid var(--border-glass);background:rgba(15,23,42,.35);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--text-secondary)}
+    .chip:hover{border-color:var(--border-active);color:var(--text-primary)}
+    .chip.selected{border-color:var(--indigo-500);background:rgba(99,102,241,.08);color:var(--indigo-400);box-shadow:0 0 18px rgba(99,102,241,.10)}
+    .chip-icon{font-size:13px}
 
-    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    @media (max-width: 768px) { .row-2, .row-3 { grid-template-columns: 1fr; } }
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 22px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s}
+    .btn-generate{width:100%;background:linear-gradient(135deg,var(--indigo-500),var(--violet-500));color:#fff;box-shadow:0 4px 28px rgba(99,102,241,.22)}
+    .btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(99,102,241,.3)}
+    .btn-generate:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-glass{padding:9px 16px;font-size:12px;background:rgba(15,23,42,.5);border:1px solid var(--border-glass);color:var(--text-primary)}
+    .btn-glass:hover{border-color:var(--border-active);background:rgba(99,102,241,.06)}
+    .btn-sm{padding:6px 12px;font-size:11px;border-radius:8px}
+    .btn-play{padding:3px 8px;font-size:11px;border-radius:6px}
 
-    /* Chips */
-    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-    .chip {
-      padding: 7px 15px; border-radius: 20px;
-      border: 1px solid var(--border-glass);
-      font-size: 12.5px; font-weight: 500; cursor: pointer;
-      transition: all 0.2s ease; color: var(--text-secondary);
-      background: rgba(15, 23, 42, 0.4);
-    }
-    .chip:hover { border-color: var(--border-active); color: var(--text-primary); }
-    .chip.selected {
-      border-color: var(--indigo-500);
-      background: rgba(99, 102, 241, 0.12);
-      color: var(--indigo-400);
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.12);
-    }
-    .chip.small { padding: 5px 12px; font-size: 11.5px; }
+    /* PREVIEW CARD — content analysis */
+    .preview-content{background:rgba(15,23,42,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:16px;margin:12px 0;display:none}
+    .preview-content.show{display:block}
+    .preview-title{font-size:15px;font-weight:700;color:var(--indigo-400);margin-bottom:6px}
+    .preview-meta{font-size:11px;color:var(--text-dim);margin-bottom:12px}
+    .preview-body{font-size:13px;color:var(--text-secondary);line-height:1.5;max-height:200px;overflow-y:auto}
 
-    /* Button */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 13px 24px;
-      border: none; border-radius: var(--radius-sm);
-      font-size: 14px; font-weight: 600; font-family: inherit;
-      cursor: pointer; transition: all 0.2s ease;
-    }
-    .btn-generate {
-      width: 100%;
-      background: linear-gradient(135deg, var(--indigo-500), var(--violet-500));
-      color: #fff;
-      box-shadow: 0 4px 24px rgba(99, 102, 241, 0.25);
-      padding: 15px 24px; font-size: 15px;
-    }
-    .btn-generate:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 32px rgba(99, 102, 241, 0.35);
-    }
-    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    /* PROGRESS */
+    .progress-box{display:none}
+    .progress-box.show{display:block}
+    .progress-bar{width:100%;height:5px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden;margin:12px 0}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--indigo-500),var(--violet-500),var(--cyan-400));border-radius:3px;transition:width .4s}
+    .progress-msg{font-size:12px;color:var(--text-dim);text-align:center}
 
-    .btn-glass {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-glass);
-      color: var(--text-primary);
+    /* VOICE CARD */
+    .voice-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.02);font-size:12px}
+    .voice-item:last-child{border:none}
+    .voice-name{font-weight:600}
+    .voice-lang{font-size:10px;color:var(--text-dim);margin-left:8px}
+    .voice-actions{display:flex;gap:4px}
+    .audio-wave{display:flex;align-items:center;gap:2px;height:14px}
+    .audio-wave span{width:2px;background:var(--indigo-400);border-radius:1px;animation:wave .8s ease-in-out infinite;animation-delay:calc(var(--i) * .1s)}
+    @keyframes wave{0%,100%{height:4px}50%{height:14px}}
+
+    /* PLAYER */
+    .player-placeholder{
+      width:100%;aspect-ratio:9/16;max-height:640px;
+      background:rgba(15,23,42,.45);border:2px dashed var(--border-glass);border-radius:var(--radius);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:10px;color:var(--text-dim);font-size:12px
     }
-    .btn-glass:hover { border-color: var(--border-active); background: rgba(99, 102, 241, 0.08); }
+    #videoPlayerContainer video{width:100%;border-radius:var(--radius)}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .stat{background:rgba(15,23,42,.4);border:1px solid var(--border-glass);border-radius:var(--radius-sm);padding:10px;text-align:center}
+    .stat-val{font-size:19px;font-weight:700;color:var(--indigo-400)}
+    .stat-lbl{font-size:10px;color:var(--text-dim);margin-top:2px}
 
-    .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+    .alert{display:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;margin:10px 0}
+    .alert.show{display:block}
+    .alert-error{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);color:#fca5a5}
+    .alert-success{background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.12);color:#86efac}
 
-    /* Steps */
-    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
-    .step {
-      padding: 14px 10px; border-radius: var(--radius-sm);
-      background: var(--bg-card); border: 1px solid var(--border-glass);
-      text-align: center; transition: all 0.3s ease;
-    }
-    .step.active {
-      border-color: var(--indigo-500);
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.08);
-    }
-    .step.done { border-color: var(--success); background: rgba(34, 197, 94, 0.04); }
-    .step-dot {
-      width: 22px; height: 22px; line-height: 22px;
-      border-radius: 50%; background: rgba(255,255,255,0.05);
-      font-size: 11px; font-weight: 700; margin: 0 auto 6px;
-      border: 1px solid var(--border-glass); transition: all 0.3s ease;
-    }
-    .step.active .step-dot { background: var(--indigo-500); border-color: var(--indigo-500); color: #fff; }
-    .step.done .step-dot { background: var(--success); border-color: var(--success); color: #fff; }
-    .step-label { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--indigo-400);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
 
-    /* Progress */
-    .progress-container { display: none; }
-    .progress-container.show { display: block; }
-    .progress-bar {
-      width: 100%; height: 5px; background: rgba(255,255,255,0.05);
-      border-radius: 3px; overflow: hidden; margin: 14px 0;
-    }
-    .progress-fill {
-      height: 100%; 
-      background: linear-gradient(90deg, var(--indigo-500), var(--violet-500), var(--cyan-400));
-      border-radius: 3px; transition: width 0.4s ease;
-    }
-    .progress-msg { font-size: 12.5px; color: var(--text-dim); text-align: center; }
+    footer{text-align:center;padding:24px 0;color:var(--text-dim);font-size:10px;opacity:.5}
 
-    /* Error / Success */
-    .alert { display: none; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; margin: 12px 0; }
-    .alert.show { display: block; }
-    .alert-error { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: #fca5a5; }
-    .alert-success { background: rgba(34, 197, 94, 0.06); border: 1px solid rgba(34, 197, 94, 0.15); color: #86efac; }
-
-    /* Right panel — Player */
-    .player-placeholder {
-      width: 100%; aspect-ratio: 9/16; max-height: 640px;
-      background: rgba(15, 23, 42, 0.5);
-      border: 2px dashed var(--border-glass);
-      border-radius: var(--radius);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 14px; color: var(--text-dim); font-size: 13px;
-      transition: all 0.3s ease;
-    }
-    .player-placeholder svg { opacity: 0.25; transition: opacity 0.3s ease; }
-    .player-placeholder:hover { border-color: var(--border-active); }
-    .player-placeholder:hover svg { opacity: 0.4; }
-
-    #videoPlayerContainer video {
-      width: 100%; border-radius: var(--radius);
-    }
-
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-    .stat {
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 12px; text-align: center;
-    }
-    .stat-val { font-size: 20px; font-weight: 700; color: var(--indigo-400); }
-    .stat-lbl { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-
-    .video-actions { display: none; margin-top: 14px; }
-    .video-actions.show { display: flex; flex-direction: column; gap: 10px; }
-    .link-preview {
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px; font-size: 11px; color: var(--text-dim);
-      word-break: break-all;
-    }
-    .link-preview a { color: var(--indigo-400); }
-
-    /* Job list */
-    .job-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
-      font-size: 12.5px;
-    }
-    .job-item:last-child { border: none; }
-    .job-status {
-      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
-    }
-    .job-status.done { background: rgba(34,197,94,0.1); color: var(--success); }
-    .job-status.processing { background: rgba(99,102,241,0.1); color: var(--indigo-400); }
-    .job-status.error { background: rgba(239,68,68,0.1); color: var(--error); }
-
-    .fetch-content { margin-top: 12px; padding: 16px; background: rgba(15,23,42,0.5); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); display: none; }
-    .fetch-content.show { display: block; }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--indigo-400); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 0; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); overflow: hidden; }
-    .tab { flex: 1; padding: 9px 12px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--text-dim); border: none; border-right: 1px solid var(--border-glass); transition: all 0.2s; font-family: inherit; }
-    .tab:last-child { border-right: none; }
-    .tab.active { background: rgba(99,102,241,0.08); color: var(--indigo-400); }
-
-    footer { text-align: center; padding: 28px 0; color: var(--text-dim); font-size: 11px; opacity: 0.6; }
-    footer a { color: var(--indigo-400); text-decoration: none; }
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-glass);border-radius:3px}
   </style>
 </head>
 <body>
-  <div class="aurora-bg"></div>
-  <div class="aurora-orb aurora-orb-1"></div>
-  <div class="aurora-orb aurora-orb-2"></div>
-  <div class="aurora-orb aurora-orb-3"></div>
+  <div class="aurora-bg"></div><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
 
   <div class="app">
-    <!-- Header -->
+    <!-- HEADER WITH LOGO -->
     <div class="header">
-      <div class="header-inner">
-        <div class="header-logo"><span class="header-logo-x">X</span>-Video Studio</div>
-        <div class="header-version">v1.2</div>
-        <div class="header-machine">M4 GPU</div>
-        <div class="header-subtitle">AI World · URL → Video Engine</div>
+      <div class="header-bar">
+        <img src="/static/logo-xvideo.png" class="header-logo-img" alt="X-Video"/>
+        <span class="header-title"><span class="header-x">X</span>-Video Studio</span>
+        <span class="header-badge badge-ver">v1.3</span>
+        <span class="header-badge badge-gpu" style="margin-left:4px">M4 GPU</span>
       </div>
     </div>
 
-    <!-- Steps -->
-    <div class="steps" id="steps">
-      <div class="step active" id="step-1"><div class="step-dot">1</div><div class="step-label">Nội dung</div></div>
-      <div class="step" id="step-2"><div class="step-dot">2</div><div class="step-label">Kịch bản</div></div>
-      <div class="step" id="step-3"><div class="step-dot">3</div><div class="step-label">Cấu hình</div></div>
-      <div class="step" id="step-4"><div class="step-dot">4</div><div class="step-label">Hoàn tất</div></div>
-    </div>
-
-    <div class="studio-layout">
-      <!-- ==== LEFT: INPUT PANEL ==== -->
+    <div class="main-grid">
+      <!-- === LEFT: INPUT === -->
       <div>
-        <!-- Nguồn nội dung -->
+        <!-- NGUỒN -->
         <div class="card">
-          <div class="card-header">
-            <span class="card-icon">📰</span>
-            <span class="card-title">Nguồn nội dung</span>
+          <div class="card-header"><span class="card-title">📰 Nguồn nội dung</span></div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input type="text" id="url" class="field-input" style="flex:1" placeholder="https://192.168.1.9:8080/vi/slug-bai-viet/"/>
+            <button class="btn btn-glass" onclick="fetchUrl()" id="fetchBtn">📥 Lấy nội dung</button>
           </div>
-          <div class="tabs" id="sourceTabs">
-            <button class="tab active" onclick="switchSource('url')">🌐 Link bài viết</button>
-            <button class="tab" onclick="switchSource('text')">✏️ Nhập nội dung</button>
-          </div>
-          <div id="sourceUrl" style="margin-top:14px;">
-            <div style="display:flex;gap:8px;">
-              <input type="text" id="url" class="field-input" style="flex:1" placeholder="https://192.168.1.9:8080/vi/slug-bai-viet/"/>
-              <button class="btn btn-glass btn-sm" onclick="fetchUrl()" id="fetchBtn">📥 Lấy nội dung</button>
-            </div>
-          </div>
-          <div id="sourceText" style="display:none;margin-top:14px;">
-            <textarea id="text" class="field-textarea" placeholder="Dán toàn bộ nội dung bài viết hoặc tóm tắt tin tức..."></textarea>
-          </div>
-          <div class="fetch-content" id="fetchContent">
-            <div style="font-size:14px;font-weight:600;color:var(--indigo-400);margin-bottom:8px;" id="fetchedTitle"></div>
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;" id="fetchedMeta"></div>
-            <div style="font-size:13px;color:var(--text-secondary);" id="fetchedExcerpt"></div>
-          </div>
+          <textarea id="text" class="field-textarea" placeholder="Hoặc paste nội dung trực tiếp tại đây..." rows="2" style="min-height:60px"></textarea>
         </div>
 
-        <!-- Phong cách tường thuật -->
+        <!-- NỘI DUNG PHÂN TÍCH + EDIT -->
         <div class="card">
-          <div class="card-header">
-            <span class="card-icon">🎨</span>
-            <span class="card-title">Phong cách tường thuật</span>
-          </div>
-          <div class="chips" id="styleChips">
-            <span class="chip selected" data-style="news" onclick="pickStyle(this)">📺 Bản tin</span>
-            <span class="chip" data-style="reportage" onclick="pickStyle(this)">🎬 Phóng sự</span>
-            <span class="chip" data-style="analysis" onclick="pickStyle(this)">📊 Phân tích</span>
-            <span class="chip" data-style="story" onclick="pickStyle(this)">📖 Kể chuyện</span>
-            <span class="chip" data-style="hot" onclick="pickStyle(this)">🔥 Tin nóng</span>
-            <span class="chip" data-style="tutorial" onclick="pickStyle(this)">🎓 Hướng dẫn</span>
-          </div>
-        </div>
-
-        <!-- Kịch bản -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-icon">✍️</span>
-            <span class="card-title">Kịch bản video</span>
-            <span class="card-badge">Chỉnh sửa tự do</span>
+          <div class="card-header"><span class="card-title">📝 Nội dung video</span><span class="header-badge badge-ver" style="font-size:10px;margin-left:auto">Edit & Preview</span></div>
+          
+          <div class="preview-content" id="previewContent">
+            <div class="preview-title" id="previewTitle">—</div>
+            <div class="preview-meta" id="previewMeta">—</div>
+            <div class="preview-body" id="previewBody">—</div>
           </div>
 
-          <div class="field">
-            <label class="field-label">🎯 Hook mở đầu — 3 giây đầu</label>
-            <div class="chips" style="margin-bottom:8px;">
-              <span class="chip small preset-hook" onclick="setHook(this,'🔥 Tin nóng:')">🔥 Tin nóng</span>
-              <span class="chip small preset-hook" onclick="setHook(this,'Bạn có biết?')">🤔 Bạn có biết</span>
-              <span class="chip small preset-hook" onclick="setHook(this,'Đột phá mới:')">🚀 Đột phá</span>
-              <span class="chip small preset-hook" onclick="setHook(this,'Cảnh báo:')">⚠️ Cảnh báo</span>
-              <span class="chip small preset-hook" onclick="setHook(this,'Vừa ra mắt:')">⚡ Vừa ra mắt</span>
+          <div class="field"><label class="field-label">🎯 Hook mở đầu (3s)</label>
+            <div class="chips" style="margin-bottom:6px">
+              <span class="chip chip-icon" onclick="setVal('hook',this,'🔥 Tin nóng:')">🔥 Tin nóng</span>
+              <span class="chip chip-icon" onclick="setVal('hook',this,'Bạn có biết?')">🤔 Bạn có biết</span>
+              <span class="chip chip-icon" onclick="setVal('hook',this,'Đột phá mới:')">🚀 Đột phá</span>
+              <span class="chip chip-icon" onclick="setVal('hook',this,'Cảnh báo:')">⚠️ Cảnh báo</span>
             </div>
-            <textarea id="hook" class="field-textarea" rows="1" placeholder="Câu hook hấp dẫn — giữ chân người xem trong 3s đầu tiên..." style="min-height:44px;">🔥 Tin nóng:</textarea>
+            <textarea id="hook" class="field-textarea" rows="1" style="min-height:38px" placeholder="Hook thu hút trong 3s đầu...">🔥 Tin nóng:</textarea>
           </div>
 
           <div class="field">
             <label class="field-label">📝 Nội dung chính</label>
-            <textarea id="mainContent" class="field-textarea" rows="4" placeholder="Nội dung sẽ hiện ra ở đây sau khi lấy URL..."></textarea>
+            <textarea id="mainContent" class="field-textarea" rows="3" placeholder="Nội dung bài viết sẽ hiển thị ở đây sau khi lấy URL. Bạn có thể chỉnh sửa tự do."></textarea>
           </div>
 
-          <div class="field">
-            <label class="field-label">📢 Kêu gọi hành động (CTA) — cuối video</label>
-            <div class="chips" style="margin-bottom:8px;">
-              <span class="chip small preset-cta" onclick="setCTA(this,'👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!')">👍 Like & Follow</span>
-              <span class="chip small preset-cta" onclick="setCTA(this,'📌 Truy cập AI World để đọc thêm. Link trong bio!')">📌 AI World</span>
-              <span class="chip small preset-cta" onclick="setCTA(this,'💬 Bạn nghĩ sao? Comment ý kiến bên dưới!')">💬 Comment</span>
-              <span class="chip small preset-cta" onclick="setCTA(this,'🔔 Đăng ký kênh để không bỏ lỡ tin mới!')">🔔 Đăng ký</span>
+          <div class="field"><label class="field-label">📢 CTA cuối video</label>
+            <div class="chips" style="margin-bottom:6px">
+              <span class="chip chip-icon" onclick="setVal('cta',this,'👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!')">👍 Like</span>
+              <span class="chip chip-icon" onclick="setVal('cta',this,'📌 Truy cập AI World để đọc thêm!')">📌 AI World</span>
+              <span class="chip chip-icon" onclick="setVal('cta',this,'💬 Bạn nghĩ sao? Comment dưới đây!')">💬 Comment</span>
+              <span class="chip chip-icon" onclick="setVal('cta',this,'🔔 Đăng ký để không bỏ lỡ tin mới!')">🔔 Đăng ký</span>
             </div>
-            <textarea id="cta" class="field-textarea" rows="1" placeholder="Lời kêu gọi hành động cuối video..." style="min-height:44px;">👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!</textarea>
+            <textarea id="cta" class="field-textarea" rows="1" style="min-height:38px" placeholder="Lời kêu gọi hành động...">👍 Like & Follow để cập nhật tin công nghệ mỗi ngày!</textarea>
           </div>
         </div>
 
-        <!-- Cấu hình -->
+        <!-- PHONG CÁCH -->
         <div class="card">
-          <div class="card-header">
-            <span class="card-icon">⚙️</span>
-            <span class="card-title">Cấu hình video</span>
-          </div>
-          <div class="row-3">
-            <div class="field">
-              <label class="field-label">Giọng đọc / Voice</label>
-              <select id="voice" class="field-select">
-                <optgroup label="🇻🇳 Tiếng Việt (VieNeu TTS)">
-                  <option value="female_south">🇻🇳 Nữ Nam Bộ (mặc định)</option>
-                  <option value="female_north">🇻🇳 Nữ Bắc Bộ</option>
-                  <option value="male_south">🇻🇳 Nam Nam Bộ</option>
-                  <option value="male_north">🇻🇳 Nam Bắc Bộ</option>
-                </optgroup>
-                <optgroup label="🇺🇸 English (macOS say)">
-                  <option value="Samantha">🇺🇸 Samantha (Mỹ)</option>
-                  <option value="Karen">🇦🇺 Karen (Úc)</option>
-                  <option value="Daniel">🇬🇧 Daniel (Anh)</option>
-                </optgroup>
-              </select>
+          <div class="card-header"><span class="card-title">🎨 Phong cách & Voice</span></div>
+          
+          <div class="field"><label class="field-label">Phong cách viết</label>
+            <div class="chips" id="styleChips">
+              <span class="chip selected" data-style="news" onclick="pickStyle(this)">📺 Bản tin</span>
+              <span class="chip" data-style="reportage" onclick="pickStyle(this)">🎬 Phóng sự</span>
+              <span class="chip" data-style="analysis" onclick="pickStyle(this)">📊 Phân tích</span>
+              <span class="chip" data-style="story" onclick="pickStyle(this)">📖 Kể chuyện</span>
+              <span class="chip" data-style="hot" onclick="pickStyle(this)">🔥 Tin nóng</span>
+              <span class="chip" data-style="tutorial" onclick="pickStyle(this)">🎓 Hướng dẫn</span>
             </div>
-            <div class="field">
-              <label class="field-label">Tốc độ đọc</label>
+          </div>
+
+          <div class="field"><label class="field-label">🎤 Giọng đọc / Voice</label>
+            <select id="voice" class="field-select" onchange="updateVoiceDesc()">
+              <optgroup label="🇻🇳 Tiếng Việt — VieNeu TTS (Macmini M4)">
+                <option value="female_south">🇻🇳 Nữ Nam Bộ (mặc định)</option>
+                <option value="female_north">🇻🇳 Nữ Bắc Bộ</option>
+                <option value="male_south">🇻🇳 Nam Nam Bộ</option>
+                <option value="male_north">🇻🇳 Nam Bắc Bộ</option>
+              </optgroup>
+              <optgroup label="🇺🇸 English — macOS say">
+                <option value="Samantha">🇺🇸 Samantha (Mỹ)</option>
+                <option value="Karen">🇦🇺 Karen (Úc)</option>
+                <option value="Daniel">🇬🇧 Daniel (Anh)</option>
+              </optgroup>
+            </select>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <button class="btn btn-glass btn-sm" onclick="previewVoice()" id="previewVoiceBtn">
+                🔈 Nghe thử giọng đọc
+              </button>
+              <span style="font-size:10px;color:var(--text-dim)" id="voiceStatus"></span>
+            </div>
+            <audio id="voicePreviewAudio" style="display:none" controls></audio>
+          </div>
+
+          <div class="row-3">
+            <div class="field"><label class="field-label">Tốc độ</label>
               <select id="speed" class="field-select">
                 <option value="slow">🐢 Chậm</option>
                 <option value="normal" selected>▶ Bình thường</option>
                 <option value="fast">⚡ Nhanh</option>
               </select>
             </div>
-            <div class="field">
-              <label class="field-label">Âm nhạc</label>
+            <div class="field"><label class="field-label">Âm nhạc</label>
               <select id="music" class="field-select">
                 <option value="ambient">🎵 Ambient</option>
                 <option value="corporate">🏢 Corporate</option>
                 <option value="tech">💻 Tech</option>
                 <option value="cinematic">🎬 Cinematic</option>
-                <option value="none">🔇 Mute</option>
+                <option value="none">🔇 Không nhạc</option>
+              </select>
+            </div>
+            <div class="field"><label class="field-label">Khổ</label>
+              <select id="aspect" class="field-select">
+                <option value="doc">📱 Dọc 9:16</option>
+                <option value="ngang">🖥 Ngang 16:9</option>
+                <option value="vuong">📐 Vuông 1:1</option>
               </select>
             </div>
           </div>
           <div class="row-2">
-            <div class="field">
-              <label class="field-label">Khổ video</label>
-              <select id="aspect" class="field-select">
-                <option value="doc">📱 Dọc 9:16 (TikTok/Reels)</option>
-                <option value="ngang">🖥 Ngang 16:9 (YouTube)</option>
-                <option value="vuong">📐 Vuông 1:1 (Instagram)</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label">Độ phân giải</label>
+            <div class="field"><label class="field-label">Độ phân giải</label>
               <select id="resolution" class="field-select">
-                <option value="fhd" selected>Full HD 1080p</option>
                 <option value="hd">HD 720p</option>
+                <option value="fhd" selected>Full HD 1080p</option>
                 <option value="2k">2K 1440p</option>
                 <option value="4k">4K 2160p</option>
               </select>
@@ -472,15 +289,15 @@
           </div>
         </div>
 
-        <!-- Generate -->
-        <button class="btn btn-generate" id="submitBtn" onclick="generate()">
+        <!-- GENERATE -->
+        <button class="btn btn-generate" id="submitBtn" onclick="generateVideo()">
           ▶ 🎬 Tạo Video
         </button>
 
-        <div class="progress-container" id="progressCard">
-          <div class="card" style="margin-top:14px;">
-            <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;">
-              <span class="spinner"></span> <span id="progressTitle">Đang xử lý...</span>
+        <div class="progress-box" id="progressBox">
+          <div class="card" style="margin-top:10px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+              <span class="spinner"></span><span id="progressTitle">Đang xử lý...</span>
             </div>
             <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
             <div class="progress-msg" id="progressText">Khởi tạo...</div>
@@ -490,228 +307,167 @@
         <div class="alert alert-error" id="errorMsg"></div>
       </div>
 
-      <!-- ==== RIGHT: PLAYER ==== -->
+      <!-- === RIGHT: PLAYER === -->
       <div>
         <div class="card">
-          <div class="card-header">
-            <span class="card-icon">📹</span>
-            <span class="card-title">Preview & Export</span>
-            <span class="card-badge">MP4</span>
-          </div>
-
+          <div class="card-header"><span class="card-title">📹 Preview & Output</span></div>
           <div class="player-placeholder" id="playerPlaceholder">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".25">
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
             <span>Video sẽ hiển thị ở đây</span>
-            <span style="font-size:10px;opacity:0.5;">Điền nội dung & bấm Tạo Video</span>
           </div>
-
-          <div id="videoPlayerContainer" style="display:none;">
-            <video id="videoPlayer" controls playsinline style="width:100%;border-radius:var(--radius);"></video>
+          <div id="videoPlayerContainer" style="display:none">
+            <video id="videoPlayer" controls playsinline style="width:100%;border-radius:var(--radius)"></video>
           </div>
-
-          <div class="stats" id="stats" style="display:none;">
+          <div class="stats" id="stats" style="display:none">
             <div class="stat"><div class="stat-val" id="statDur">—</div><div class="stat-lbl">Thời lượng</div></div>
             <div class="stat"><div class="stat-val" id="statSize">—</div><div class="stat-lbl">Dung lượng</div></div>
             <div class="stat"><div class="stat-val" id="statWords">—</div><div class="stat-lbl">Số từ</div></div>
-            <div class="stat"><div class="stat-val" id="statSpeed">—</div><div class="stat-lbl">Tốc độ wpm</div></div>
+            <div class="stat"><div class="stat-val" id="statSpeed">—</div><div class="stat-lbl">Tốc độ</div></div>
           </div>
-
-          <div class="video-actions" id="videoActions">
-            <a id="downloadBtn" class="btn btn-generate" download>
-              📥 Tải MP4
-            </a>
-            <button class="btn btn-glass" onclick="copyLink()" id="copyBtn">🔗 Sao chép link</button>
-            <div class="link-preview" id="linkPreview" style="display:none;">
-              <a id="onlineLink" target="_blank"></a>
-            </div>
+          <div id="videoActions" style="display:none;margin-top:10px">
+            <a id="downloadBtn" class="btn btn-generate" download style="text-decoration:none;font-size:12px">📥 Tải MP4</a>
+            <button class="btn btn-glass" onclick="copyLink()" style="margin-top:6px;width:100%">🔗 Sao chép link</button>
           </div>
-        </div>
-
-        <!-- History -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-icon">📋</span>
-            <span class="card-title">Lịch sử</span>
-          </div>
-          <div id="jobsList"><div style="text-align:center;color:var(--text-dim);padding:24px;font-size:12px;">Chưa có video nào</div></div>
         </div>
       </div>
     </div>
 
-    <footer>
-      X-Video Studio &copy; 2026 <a href="https://aiworld.vn" target="_blank">AI World</a> · Macmini M4 · <a href="https://github.com/adamwang99/X-Video" target="_blank">GitHub</a>
-    </footer>
+    <footer>X-Video Studio &copy; 2026 AI World · Macmini M4 · VieNeu TTS</footer>
   </div>
 
   <script>
-    const API = '';
-
-    function switchSource(mode) {
-      document.querySelectorAll('#sourceTabs .tab').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      document.getElementById('sourceUrl').style.display = mode === 'url' ? 'block' : 'none';
-      document.getElementById('sourceText').style.display = mode === 'text' ? 'block' : 'none';
-    }
-
-    function pickStyle(el) {
-      document.querySelectorAll('#styleChips .chip').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-    }
-    function getStyle() { return document.querySelector('#styleChips .chip.selected')?.dataset?.style || 'news'; }
-
-    function setHook(el, text) {
-      document.querySelectorAll('.preset-hook').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('hook').value = text + ' ';
-    }
-    function setCTA(el, text) {
-      document.querySelectorAll('.preset-cta').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('cta').value = text;
-    }
-
-    function fetchUrl() {
-      const url = document.getElementById('url').value.trim();
-      if (!url) return showError('Nhập URL bài viết');
-      const btn = document.getElementById('fetchBtn');
-      btn.innerHTML = '<span class="spinner"></span> Đang lấy...';
-      btn.disabled = true;
-
-      fetch(API + '/api/prefetch?url=' + encodeURIComponent(url))
-        .then(r => r.json())
-        .then(data => {
-          btn.innerHTML = '📥 Lấy nội dung'; btn.disabled = false;
-          if (data.error) { showError(data.error); return; }
-          document.getElementById('fetchedTitle').textContent = data.title || '';
-          document.getElementById('fetchedMeta').textContent = (data.category||'') + ' · ' + (data.date||'');
-          document.getElementById('fetchedExcerpt').textContent = (data.excerpt||'').substring(0, 500);
-          document.getElementById('fetchContent').classList.add('show');
-          document.getElementById('mainContent').value = data.excerpt || data.title || '';
-          if (data.title) document.getElementById('hook').value = '🔥 Tin nóng: ' + data.title.substring(0, 60) + '...';
-          step(2);
-        }).catch(err => { btn.innerHTML = '📥 Lấy nội dung'; btn.disabled = false; showError('Lỗi kết nối: ' + err.message); });
-    }
-
     let pollId, jobId;
 
-    function generate() {
-      const url = document.getElementById('url').value.trim();
-      const text = document.getElementById('mainContent').value.trim();
-      if (!url && !text) return showError('Cần URL hoặc nội dung để tạo video');
+    function pickStyle(el){document.querySelectorAll('#styleChips .chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected')}
+    function getStyle(){return document.querySelector('#styleChips .chip.selected')?.dataset?.style||'news'}
+    function setVal(field,el,text){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');document.getElementById(field).value=text}
+
+    function fetchUrl(){
+      const url=document.getElementById('url').value.trim();
+      if(!url)return showError('Nhập URL bài viết');
+      const btn=document.getElementById('fetchBtn');
+      btn.innerHTML='<span class="spinner"></span> Đang lấy...';btn.disabled=true;
+
+      fetch('/api/prefetch?url='+encodeURIComponent(url))
+        .then(r=>r.json()).then(d=>{
+          btn.innerHTML='📥 Lấy nội dung';btn.disabled=false;
+          if(d.error){showError(d.error);return}
+          document.getElementById('previewTitle').textContent=d.title||'';
+          document.getElementById('previewMeta').textContent=(d.category||'')+' · '+(d.date||'');
+          document.getElementById('previewBody').textContent=(d.excerpt||'').substring(0,600);
+          document.getElementById('previewContent').classList.add('show');
+          document.getElementById('mainContent').value=d.excerpt||d.title||'';
+          if(d.title)document.getElementById('hook').value='🔥 Tin nóng: '+d.title.substring(0,60);
+        }).catch(e=>{btn.innerHTML='📥 Lấy nội dung';btn.disabled=false;showError('Lỗi: '+e.message)});
+    }
+
+    function previewVoice(){
+      const voice=document.getElementById('voice').value;
+      const status=document.getElementById('voiceStatus');
+      const btn=document.getElementById('previewVoiceBtn');
+      const audio=document.getElementById('voicePreviewAudio');
+      
+      const sampleText=voice.startsWith('female')||voice.startsWith('male')
+        ?'Xin chào, đây là giọng đọc tiếng Việt của X Video Studio.'
+        :'Hello, this is a voice preview from X Video Studio.';
+      const lang=voice.startsWith('female')||voice.startsWith('male')?'vi':'en';
+
+      btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Đang tạo...';
+      status.textContent='';
+
+      fetch('/api/preview-voice?voice='+encodeURIComponent(voice)+'&text='+encodeURIComponent(sampleText)+'&language='+lang)
+        .then(r=>{
+          if(!r.ok)throw new Error('HTTP '+r.status);
+          btn.disabled=false;btn.innerHTML='🔈 Nghe thử giọng đọc';
+          status.textContent='✅ Sẵn sàng';
+          audio.src='/api/preview-voice?voice='+encodeURIComponent(voice)+'&text='+encodeURIComponent(sampleText)+'&language='+lang+'&t='+Date.now();
+          audio.style.display='block';audio.load();audio.play().catch(()=>{});
+        }).catch(e=>{btn.disabled=false;btn.innerHTML='🔈 Nghe thử giọng đọc';status.textContent='⚠️ Lỗi: '+e.message});
+    }
+
+    function generateVideo(){
+      const url=document.getElementById('url').value.trim();
+      const text=document.getElementById('mainContent').value.trim();
+      if(!url&&!text)return showError('Cần URL hoặc nội dung');
 
       hideError();
-      document.getElementById('submitBtn').disabled = true;
-      document.getElementById('submitBtn').innerHTML = '<span class="spinner"></span> Đang tạo trên Macmini M4...';
-      document.getElementById('progressCard').classList.add('show');
-      step(3);
+      const btn=document.getElementById('submitBtn');
+      btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Đang tạo trên Macmini M4...';
+      document.getElementById('progressBox').classList.add('show');
 
-      const payload = {
-        url: url || undefined,
-        text: text || undefined,
-        hook: document.getElementById('hook').value.trim(),
-        cta: document.getElementById('cta').value.trim(),
-        voice: document.getElementById('voice').value,
-        language: document.getElementById('voice').value.startsWith('female') || document.getElementById('voice').value.startsWith('male') ? 'vi' : 'en',
-        speed: document.getElementById('speed').value,
-        style: getStyle(),
-        music: document.getElementById('music').value,
-        aspect: document.getElementById('aspect').value,
-        resolution: document.getElementById('resolution').value,
+      const payload={
+        url:url||undefined,text:text||undefined,
+        hook:document.getElementById('hook').value.trim(),
+        cta:document.getElementById('cta').value.trim(),
+        voice:document.getElementById('voice').value,
+        speed:document.getElementById('speed').value,
+        style:getStyle(),
+        music:document.getElementById('music').value,
+        aspect:document.getElementById('aspect').value,
+        resolution:document.getElementById('resolution').value,
+        language:document.getElementById('voice').value.startsWith('female')||document.getElementById('voice').value.startsWith('male')?'vi':'en'
       };
 
-      fetch(API + '/api/generate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      }).then(r => r.json()).then(d => {
-        jobId = d.job_id; startPoll();
-      }).catch(e => {
-        document.getElementById('submitBtn').disabled = false;
-        document.getElementById('submitBtn').innerHTML = '▶ 🎬 Tạo Video';
-        showError('Lỗi: ' + e.message);
+      fetch('/api/generate',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+      }).then(r=>r.json()).then(d=>{
+        jobId=d.job_id;startPoll();
+      }).catch(e=>{
+        btn.disabled=false;btn.innerHTML='▶ 🎬 Tạo Video';
+        showError('Lỗi: '+e.message);
       });
     }
 
-    function startPoll() {
+    function startPoll(){
       clearInterval(pollId);
-      pollId = setInterval(() => {
-        fetch(API + '/api/jobs/' + jobId).then(r => r.json()).then(j => {
-          if (j.status === 'processing') setProgress(j.progress || 0);
-          else if (j.status === 'done') {
-            clearInterval(pollId); setProgress(100); step(4); showVideo(j);
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').innerHTML = '▶ 🎬 Tạo Video';
-            refreshHistory();
-          } else if (j.status === 'error') {
-            clearInterval(pollId); showError(j.error || 'Lỗi không xác định');
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').innerHTML = '▶ 🎬 Tạo Video';
+      pollId=setInterval(()=>{
+        fetch('/api/jobs/'+jobId).then(r=>r.json()).then(j=>{
+          if(j.status==='processing')setProgress(j.progress||0);
+          else if(j.status==='done'){
+            clearInterval(pollId);setProgress(100);showVideo(j);
+            document.getElementById('submitBtn').disabled=false;
+            document.getElementById('submitBtn').innerHTML='▶ 🎬 Tạo Video';
+          }else if(j.status==='error'){
+            clearInterval(pollId);showError(j.error||'Lỗi không xác định');
+            document.getElementById('submitBtn').disabled=false;
+            document.getElementById('submitBtn').innerHTML='▶ 🎬 Tạo Video';
           }
-        }).catch(() => {});
-      }, 1000);
+        });
+      },1000);
     }
 
-    function setProgress(p) {
-      document.getElementById('progressFill').style.width = p + '%';
-      const msgs = ['Khởi tạo...','Đang crawl nội dung...','🎤 Tạo giọng đọc...','🎵 Thêm nhạc...','🎬 Render video...','✅ Hoàn tất'];
-      document.getElementById('progressText').textContent = msgs[Math.min(msgs.length-1, Math.floor(p/20))];
+    function setProgress(p){
+      document.getElementById('progressFill').style.width=p+'%';
+      const msgs=['Khởi tạo...','Đang crawl...','🎤 TTS...','🎵 Nhạc...','🎬 Render...','✅ Hoàn tất'];
+      document.getElementById('progressText').textContent=msgs[Math.min(5,Math.floor(p/20))];
     }
 
-    function showVideo(job) {
-      document.getElementById('playerPlaceholder').style.display = 'none';
-      document.getElementById('videoPlayerContainer').style.display = 'block';
-      const vid = document.getElementById('videoPlayer');
-      const vp = job.video_path || '';
-      vid.src = API + '/output/' + vp; vid.load();
-      setTimeout(() => { try { vid.play(); } catch(_) {} }, 500);
+    function showVideo(job){
+      document.getElementById('playerPlaceholder').style.display='none';
+      const cont=document.getElementById('videoPlayerContainer');cont.style.display='block';
+      const vid=document.getElementById('videoPlayer');
+      vid.src='/output/'+(job.video_path||'');vid.load();
 
-      document.getElementById('stats').style.display = 'grid';
-      document.getElementById('statDur').textContent = (job.duration || '—') + 's';
-      document.getElementById('statSize').textContent = ((job.size_kb||0)/1024).toFixed(1) + 'MB';
-      document.getElementById('statWords').textContent = job.word_count || '—';
-      document.getElementById('statSpeed').textContent = (job.tts_rate||'—') + ' wpm';
+      document.getElementById('stats').style.display='grid';
+      document.getElementById('statDur').textContent=(job.duration||'—')+'s';
+      document.getElementById('statSize').textContent=((job.size_kb||0)/1024).toFixed(1)+'MB';
+      document.getElementById('statWords').textContent=job.word_count||'—';
+      document.getElementById('statSpeed').textContent=(job.tts_rate||'—')+' wpm';
 
-      document.getElementById('videoActions').classList.add('show');
-      document.getElementById('downloadBtn').href = API + '/output/' + vp;
-      document.getElementById('downloadBtn').download = vp;
-      document.getElementById('linkPreview').style.display = 'block';
-      document.getElementById('onlineLink').href = location.origin + API + '/output/' + vp;
-      document.getElementById('onlineLink').textContent = location.origin + API + '/output/' + vp;
+      const act=document.getElementById('videoActions');act.style.display='block';
+      document.getElementById('downloadBtn').href='/output/'+(job.video_path||'');
     }
 
-    function copyLink() {
-      navigator.clipboard.writeText(document.getElementById('onlineLink').href).then(() => {
-        document.getElementById('copyBtn').textContent = '✅ Đã copy!';
-        setTimeout(() => document.getElementById('copyBtn').textContent = '🔗 Sao chép link', 2000);
-      });
+    function copyLink(){
+      navigator.clipboard.writeText(location.origin+'/output/'+(document.getElementById('videoPlayer').src.split('/').pop()));
     }
 
-    function step(n) {
-      for (let i=1;i<=4;i++) {
-        const el = document.getElementById('step-'+i);
-        el.className = 'step' + (i<n?' done':'') + (i===n?' active':'');
-      }
-    }
+    function showError(m){const e=document.getElementById('errorMsg');e.textContent='❌ '+m;e.classList.add('show')}
+    function hideError(){document.getElementById('errorMsg').classList.remove('show')}
 
-    function refreshHistory() {
-      fetch(API + '/api/jobs').then(r=>r.json()).then(data => {
-        const entries = Object.entries(data.jobs||{});
-        if (!entries.length) return;
-        document.getElementById('jobsList').innerHTML = entries.slice(-8).reverse().map(([id,j]) =>
-          '<div class="job-item"><span class="job-status ' + j.status + '">' +
-          (j.status==='done'?'✅':'⏳') + '</span>' +
-          '<span style="flex:1">' + (j.title||id.substring(0,10)) + '</span>' +
-          (j.video_path?'<a href="'+API+'/output/'+j.video_path+'" style="color:var(--indigo-400);font-size:11px;text-decoration:none;">▶ Xem</a>':'') +
-          '</div>').join('');
-      });
-    }
-
-    function showError(m) { const e = document.getElementById('errorMsg'); e.textContent = '❌ ' + m; e.classList.add('show'); }
-    function hideError() { document.getElementById('errorMsg').classList.remove('show'); }
-
-    refreshHistory();
+    // Also copy logo to frontend dir
   </script>
 </body>
 </html>
