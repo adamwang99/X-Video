@@ -256,36 +256,7 @@
   </div>
 
   <!-- Tab Contents -->
-  <div id="voiceTabPanel" class="tab-panel mt-md" style="display:none">
-    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
-      <h3 class="font-label-md text-label-md text-primary mb-sm">🎤 Chọn giọng đọc</h3>
-      <div class="select-list" id="vl"></div>
-      <details class="mt-sm"><summary>Clone giọng mới</summary>
-        <div class="border border-dashed border-white/10 rounded-lg p-3 text-center mt-2 cursor-pointer" onclick="document.getElementById('cf').click()">
-          <input type="file" id="cf" accept=".wav,.mp3,.m4a" onchange="onCF(this)" style="display:none">
-          <div class="text-xs text-on-surface-variant">Chọn file ghi âm (WAV/MP3)</div>
-          <div id="cfs" class="text-[10px] opacity-50">Chưa chọn</div>
-        </div>
-        <div class="flex gap-2 mt-2">
-          <input type="text" id="cn" class="glass-input flex-1 text-xs" placeholder="Đặt tên giọng">
-        </div>
-        <div class="grid grid-cols-2 gap-2 mt-2">
-          <div><label class="text-[10px] text-on-surface-variant">Ngôn ngữ</label>
-            <select id="cloneLang" class="glass-input text-xs"><option value="vi">Tiếng Việt</option><option value="en">Tiếng Anh</option></select></div>
-          <div><label class="text-[10px] text-on-surface-variant">Vùng miền</label>
-            <select id="cloneRegion" class="glass-input text-xs"><option value="south">Miền Nam</option><option value="north">Miền Bắc</option><option value="central">Miền Trung</option></select></div>
-          <div><label class="text-[10px] text-on-surface-variant">Giới tính</label>
-            <select id="cloneGender" class="glass-input text-xs"><option value="female">Nữ</option><option value="male">Nam</option></select></div>
-          <div><label class="text-[10px] text-on-surface-variant">Độ tuổi</label>
-            <select id="cloneAge" class="glass-input text-xs"><option value="adult">Trung niên</option><option value="young">Trẻ</option><option value="elder">Già</option></select></div>
-          <div class="col-span-2"><label class="text-[10px] text-on-surface-variant">Phong cách</label>
-            <select id="cloneStyle" class="glass-input text-xs"><option value="normal">Nghiêm túc</option><option value="serious">Trang trọng</option><option value="funny">Hài hước</option></select></div>
-        </div>
-        <button class="bg-primary text-black rounded-lg px-4 py-2 text-xs font-bold w-full mt-2" onclick="doClone()" id="cbtn">Clone</button>
-        <div id="cs" class="text-[10px] text-on-surface-variant mt-1"></div>
-      </details>
-    </div>
-  </div>
+<div id="voiceTabPanel" class="tab-panel mt-md" style="display:none"><iframe src="/voice-library.html" style="width:100%;height:100%;border:none;display:block;"></iframe></div>
 
   <div id="musicTabPanel" class="tab-panel mt-md" style="display:none">
     <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
