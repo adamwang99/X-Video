@@ -4,7 +4,7 @@ X-Video Backend — FastAPI Server
 Chạy trên Macmini M4 (192.168.1.12:8767)
 """
 
-import subprocess, json, os, re, shutil, time, hashlib, threading, sqlite3
+import subprocess, json, os, re, shutil, time, hashlib, threading, sqlite3, uuid
 from pathlib import Path
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,8 +20,12 @@ import subprocess as _sp, pathlib as _pl
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 PROJECT_DIR = Path(__file__).parent.parent / "render-project"
+BGM_DIR = Path(__file__).parent.parent / "bgm_audio"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DIR.mkdir(parents=True, exist_ok=True)
+BGM_DIR.mkdir(parents=True, exist_ok=True)
+
+APP_VERSION = "1.5.9"
 
 # Resolution -> height multiplier (portrait height)
 RES_MAP = {"hd": 720, "fhd": 1080, "2k": 1440, "4k": 2160}
@@ -35,9 +39,17 @@ BGM_MAP = {
     "cinematic": [(130, 0.15), (196, 0.10), (262, 0.08)],
 }
 
-app = FastAPI(title="X-Video", version="1.1.0")
+# FIX-CORS: restrict to LAN origin instead of wildcard
+ALLOWED_ORIGINS = [
+    "http://192.168.1.12:8767",
+    "http://localhost:8767",
+    "http://127.0.0.1:8767",
+    "tauri://localhost",
+]
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="X-Video", version=APP_VERSION)
+
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class GenerateRequest(BaseModel):
     url: Optional[str] = None
@@ -57,11 +69,11 @@ jobs_lock = threading.Lock()
 JOB_DB = PROJECT_DIR / "jobs.db"
 
 def _job_db():
-    import threading as _t
-    tid = _t.get_ident()
-    if not hasattr(_job_db, "conns"):
-        _job_db.conns = {}
-    if tid not in _job_db.conns:
+    _tls = getattr(_job_db, "_tls", None)
+    if _tls is None:
+        _job_db._tls = threading.local()
+        _tls = _job_db._tls
+    if not hasattr(_tls, "conn"):
         conn = sqlite3.connect(str(JOB_DB))
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=5000")
@@ -78,14 +90,17 @@ def _job_db():
             updated_at TEXT DEFAULT (datetime('now'))
         )""")
         conn.commit()
-        _job_db.conns[tid] = conn
-    return _job_db.conns[tid]
+        _tls.conn = conn
+    return _tls.conn
 
 def _job_create(jid, req_json, voice_snap="{}"):
     db = _job_db()
     db.execute("INSERT OR REPLACE INTO jobs(job_id, status, progress, request_json, voice_snapshot) VALUES(?, 'queued', 0, ?, ?)",
                (jid, req_json, voice_snap))
     db.commit()
+    # FIX: invalidate list cache so new job is visible
+    _jobs_cache.pop(jid, None)
+    _jobs_cache["__dirty__"] = True
 
 def _job_update(jid, **fields):
     db = _job_db()
@@ -93,6 +108,9 @@ def _job_update(jid, **fields):
     vals = list(fields.values()) + [jid]
     db.execute(f"UPDATE jobs SET {', '.join(sets)}, updated_at=datetime('now') WHERE job_id=?", vals)
     db.commit()
+    # FIX: keep cache in sync
+    if jid in _jobs_cache:
+        _jobs_cache[jid].update(fields)
 
 def _job_get(jid):
     db = _job_db()
@@ -110,12 +128,13 @@ def _job_get(jid):
             pass
     return result
 
-# Rebuild in-memory cache from SQLite on startup
+# FIX: cache với dirty flag thay vì check `if _jobs_cache` mãi mãi
 _jobs_cache = {}
 def _job_list():
-    if _jobs_cache:
-        return _jobs_cache
+    if not _jobs_cache.get("__dirty__", True) and len(_jobs_cache) > 1:
+        return {k: v for k, v in _jobs_cache.items() if k != "__dirty__"}
     db = _job_db()
+    fresh = {}
     for row in db.execute("SELECT * FROM jobs WHERE status NOT IN ('done','error') ORDER BY created_at DESC LIMIT 50"):
         d = dict(row)
         result = {"job_id": d["job_id"], "status": d["status"], "progress": d["progress"], "error": d.get("error")}
@@ -126,11 +145,10 @@ def _job_list():
                     result[k] = v
             except Exception:
                 pass
-        _jobs_cache[d["job_id"]] = result
-    # Also include recent done/error
+        fresh[d["job_id"]] = result
     for row in db.execute("SELECT * FROM jobs WHERE status IN ('done','error') ORDER BY created_at DESC LIMIT 20"):
         d = dict(row)
-        if d["job_id"] not in _jobs_cache:
+        if d["job_id"] not in fresh:
             result = {"job_id": d["job_id"], "status": d["status"], "progress": d["progress"], "error": d.get("error")}
             if d.get("result_json"):
                 try:
@@ -139,11 +157,17 @@ def _job_list():
                         result[k] = v
                 except Exception:
                     pass
-            _jobs_cache[d["job_id"]] = result
-    return _jobs_cache
+            fresh[d["job_id"]] = result
+    _jobs_cache.clear()
+    _jobs_cache.update(fresh)
+    _jobs_cache["__dirty__"] = False
+    return fresh
 
+def clean_html(h):
+    # FIX: strip script/style blocks trước, sau đó strip tags
+    h = re.sub(r'<(script|style|noscript)[^>]*>.*?</\1>', ' ', h, flags=re.DOTALL | re.IGNORECASE)
+    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', re.sub(r'&[a-z]+;', ' ', h))).strip()
 
-def clean_html(h): return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', re.sub(r'&[a-z]+;', ' ', h))).strip()
 def categorize(slug):
     if "phan-bien" in slug or "thuc-thi" in slug: return "TỔNG HỢP"
     if "evo-core" in slug: return "EVO-CORE"
@@ -162,9 +186,10 @@ def fetch_content(url):
                         clean_html(p.get('excerpt',{}).get('rendered',p['title']['rendered'])),
                         p.get('date','')[:10], categorize(p.get('slug',slug)))
     except: pass
-    # Fallback parse HTML
-    with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as r:
-        html = r.read().decode('utf-8', errors='replace')
+    # Fallback parse HTML — FIX: giới hạn 512KB để tránh OOM
+    req_obj = urllib.request.Request(url)
+    with urllib.request.urlopen(req_obj, timeout=10) as r:
+        html = r.read(524288).decode('utf-8', errors='replace')
     m = re.search(r'<title>(.*?)</title>', html)
     title = clean_html(m.group(1)) if m else slug.replace('-',' ')
     return title, html, title, datetime.now().strftime('%Y-%m-%d'), "TIN TỨC"
@@ -172,9 +197,9 @@ def fetch_content(url):
 def generate_voice(text, voice, output_path, language="vi"):
     """TTS — Macmini VieNeu (Vietnamese) or macOS say (English)"""
     wc = len(text.split())
-    
+    actual_engine = "macOS_say"  # default, updated if VieNeu succeeds
+
     if language == "vi":
-        # Use VieNeu TTS on Macmini (port 6023) — OpenAI compatible
         import urllib.request as ureq
         import json as jsonmod
         voice_map = {"female_south": "female_south", "female_north": "female_north",
@@ -197,29 +222,44 @@ def generate_voice(text, voice, output_path, language="vi"):
             dur = float(r_dur.stdout.strip() or 50)
             return int(dur), wc, "vieneu"
         except Exception as e:
-            print(f"VieNeu TTS failed: {e}, falling back to macOS say")
-    
+            # FIX: log warning rõ ràng khi fallback
+            print(f"[WARN] VieNeu TTS failed ({e}), falling back to macOS say — voice snapshot sẽ phản ánh thực tế")
+
     # Fallback: macOS say
     rate = min(210, max(140, int(wc / 50 * 60)))
     script_path = output_path.parent / "script.txt"
     with open(script_path, "w") as f: f.write(text)
     aiff = output_path.parent / "temp.aiff"
-    subprocess.run(['say','-v',voice,'-r',str(rate),'-f',str(script_path),'-o',str(aiff)], capture_output=True, timeout=60)
+    # dùng voice mặc định macOS nếu voice id là VieNeu format
+    mac_voice = voice if voice not in ("female_south","female_north","male_south","male_north") else "Samantha"
+    subprocess.run(['say','-v', mac_voice,'-r',str(rate),'-f',str(script_path),'-o',str(aiff)], capture_output=True, timeout=60)
     subprocess.run(['/opt/homebrew/bin/ffmpeg','-y','-i',str(aiff),'-acodec','libmp3lame','-b:a','128k',str(output_path)], capture_output=True, timeout=60)
     if aiff.exists(): aiff.unlink()
     r = subprocess.run(['/opt/homebrew/bin/ffprobe','-v','quiet','-show_entries','format=duration','-of','csv=p=0',str(output_path)], capture_output=True, text=True, timeout=10)
     dur = float(r.stdout.strip() or 50)
-    return int(dur), wc, rate
+    return int(dur), wc, f"macOS_say_{mac_voice}"
 
 def generate_bgm(music_style, duration, output_path):
+    # Check custom BGM file trước
+    for ext in ("mp3", "wav", "m4a"):
+        custom = BGM_DIR / f"{music_style}.{ext}"
+        if custom.exists():
+            subprocess.run(['/opt/homebrew/bin/ffmpeg','-y','-i',str(custom),
+                            '-t',str(duration),'-acodec','libmp3lame','-b:a','128k',str(output_path)],
+                           capture_output=True, timeout=30)
+            return
     if music_style == "none":
         subprocess.run(['/opt/homebrew/bin/ffmpeg','-y','-f','lavfi','-i','anullsrc=r=44100:cl=mono','-t',str(duration),str(output_path)], capture_output=True, timeout=10)
         return
     tones = BGM_MAP.get(music_style, BGM_MAP["ambient"])
-    inputs = ' '.join([f'-f lavfi -i "sine=frequency={f}:duration={duration}"' for f, _, in tones])
+    # FIX: build ffmpeg args as list thay vì string.split() để tránh shell injection
+    cmd = ['/opt/homebrew/bin/ffmpeg', '-y']
+    for f, _ in tones:
+        cmd += ['-f', 'lavfi', '-i', f'sine=frequency={f}:duration={duration}']
     weights = ':'.join([str(w) for _, w in tones])
     filter_cmd = f'[0:a][1:a][2:a]amix=inputs={len(tones)}:duration=first:weights={weights},afade=t=in:d=1,afade=t=out:st={duration-2}:d=2,volume=0.07'
-    subprocess.run(f'/opt/homebrew/bin/ffmpeg -y {inputs} -filter_complex "{filter_cmd}" -acodec libmp3lame -b:a 64k {output_path}'.split(), capture_output=True, timeout=30)
+    cmd += ['-filter_complex', filter_cmd, '-acodec', 'libmp3lame', '-b:a', '64k', str(output_path)]
+    subprocess.run(cmd, capture_output=True, timeout=30)
 
 def make_html(aspect, title, date_str, duration, voice_path, bgm_path, style="news", resolution="fhd"):
     ar_w, ar_h = ASPECT_MAP.get(aspect, (9, 16))
@@ -229,6 +269,11 @@ def make_html(aspect, title, date_str, duration, voice_path, bgm_path, style="ne
     pct = lambda p: int(h * p)
 
     style_desc = {"news":"📺 BẢN TIN","reportage":"🎬 PHÓNG SỰ","analysis":"📊 PHÂN TÍCH","story":"📖 CÂU CHUYỆN","tutorial":"🎓 HƯỚNG DẪN","hot":"🔥 TIN NÓNG"}
+
+    # FIX: escape title để tránh inject vào HTML
+    import html as _html
+    safe_title = _html.escape(title[:200])
+    dur_int = int(duration)
 
     return f'''<!doctype html>
 <html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width={w},height={h}"/>
@@ -249,8 +294,8 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:#06061a;
 .circle{{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.08)0%,transparent 70%);pointer-events:none}}
 </style></head>
 <body>
-<div id="root" data-composition-id="main" data-start="0" data-duration="{duration}" data-width="{w}" data-height="{h}">
-  <audio id="voice-main" data-start="0" data-duration="{duration}" data-track-index="0" data-volume="1.0" src="{voice_path}"></audio>
+<div id="root" data-composition-id="main" data-start="0" data-duration="{dur_int}" data-width="{w}" data-height="{h}">
+  <audio id="voice-main" data-start="0" data-duration="{dur_int}" data-track-index="0" data-volume="1.0" src="{voice_path}"></audio>
   <div class="bg-grad"></div><div class="bg-grid"></div>
   <div class="circle" style="width:{int(w*0.3)}px;height:{int(w*0.3)}px;top:-{int(h*0.04)}px;right:-{int(w*0.06)}px" id="c1"></div>
   <div class="circle" style="width:{int(w*0.18)}px;height:{int(w*0.18)}px;top:{int(h*0.4)}px;left:-{int(w*0.04)}px" id="c2"></div>
@@ -258,7 +303,7 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:#06061a;
   <div class="accent" id="accent"></div>
   <div class="logo" id="logo">AI WORLD</div>
   <div class="styletag" id="tag">{style_desc.get(style,"📺 TIN TỨC")}</div>
-  <div class="title" id="title">{title[:200]}</div>
+  <div class="title" id="title">{safe_title}</div>
   <div class="content" id="content">Tin tức AI mới nhất từ AI World. Giải pháp doanh nghiệp AI First.</div>
   <div class="cta" id="cta"></div>
   <div class="meta" id="meta">AI World News &#183; {date_str}</div>
@@ -266,6 +311,7 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:#06061a;
 <script>
 window.__timelines=window.__timelines||{{}};
 const tl=gsap.timeline({{paused:true}});
+const DUR={dur_int};
 tl.from("#accent",{{scaleX:0,transformOrigin:"left",duration:.5,ease:"power3.out",delay:.2}},0);
 tl.from("#c1",{{opacity:0,scale:.4,duration:1,ease:"power2.out"}},.2);
 tl.from("#c2",{{opacity:0,scale:.4,duration:.8,ease:"power2.out"}},.5);
@@ -274,17 +320,16 @@ tl.from("#logo",{{opacity:0,y:-15,duration:.5,ease:"power3.out"}},.3);
 tl.from("#tag",{{opacity:0,y:-10,scale:.9,duration:.4,ease:"back.out(1.3)"}},.5);
 tl.from("#title",{{opacity:0,y:30,duration:.7,ease:"power3.out"}},.8);
 tl.from("#content",{{opacity:0,y:20,duration:.6,ease:"power2.out"}},1.5);
-tl.from("#cta",{{opacity:0,y:15,duration:.5,ease:"power2.out"}},{duration-5});
+tl.from("#cta",{{opacity:0,y:15,duration:.5,ease:"power2.out"}},DUR-5);
 tl.from("#meta",{{opacity:0,duration:.5,ease:"power2.out"}},1.8);
-tl.to("#c1",{{y:-20,duration:4,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/4)-1}},2);
-tl.to("#c2",{{y:20,duration:5,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/5)-1}},2);
-tl.to("#c3",{{y:-15,duration:4.5,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/4.5)-1}},2);
-tl.to("#root>*",{{opacity:0,duration:1.5,ease:"power2.in"}},{duration-4});
+tl.to("#c1",{{y:-20,duration:4,ease:"sine.inOut",yoyo:true,repeat:Math.floor(DUR/4)-1}},2);
+tl.to("#c2",{{y:20,duration:5,ease:"sine.inOut",yoyo:true,repeat:Math.floor(DUR/5)-1}},2);
+tl.to("#c3",{{y:-15,duration:4.5,ease:"sine.inOut",yoyo:true,repeat:Math.floor(DUR/4.5)-1}},2);
+tl.to("#root>*",{{opacity:0,duration:1.5,ease:"power2.in"}},DUR-4);
 window.__timelines["main"]=tl;
 </script></body></html>'''
 
 def process_job(jid: str, req: GenerateRequest):
-    global jobs
     try:
         _job_update(jid, status="processing", progress=5)
         jd = PROJECT_DIR / jid; jd.mkdir(exist_ok=True)
@@ -302,11 +347,12 @@ def process_job(jid: str, req: GenerateRequest):
         cta = req.cta or "Theo dõi AI World để cập nhật tin tức công nghệ mới nhất!"
 
         _job_update(jid, status="processing", progress=30)
-        # FIX-04: Voice snapshot — lock voice config at job start
-        voice_snap = json.dumps({"voice": req.voice, "language": req.language, "engine": "VieNeu" if req.language == "vi" else "macOS"})
-        _job_update(jid, voice_snapshot=voice_snap)
         voice_text = f"AI World News. {hook} {excerpt or title}. {cta} Visit a i world dot v n."
-        duration, wc, rate = generate_voice(voice_text, req.voice, jd/"voice.mp3", req.language)
+        duration, wc, actual_engine = generate_voice(voice_text, req.voice, jd/"voice.mp3", req.language)
+
+        # FIX: voice_snapshot ghi lại engine thực sự dùng (kể cả fallback)
+        voice_snap = json.dumps({"voice": req.voice, "language": req.language, "engine": actual_engine})
+        _job_update(jid, voice_snapshot=voice_snap)
 
         _job_update(jid, status="processing", progress=45)
         generate_bgm(req.music, duration, jd/"bgm.mp3")
@@ -335,10 +381,13 @@ def process_job(jid: str, req: GenerateRequest):
 
         _job_update(jid, status="done", progress=100,
             result_json=json.dumps({"video_path": out_name, "duration": duration, "size_kb": size_kb,
-                "word_count": wc, "tts_rate": rate, "title": title[:80], "category": category,
+                "word_count": wc, "tts_rate": actual_engine, "title": title[:80], "category": category,
                 "style": req.style, "aspect": req.aspect}))
+        # FIX: mark cache dirty after job done so list refreshes
+        _jobs_cache["__dirty__"] = True
     except Exception as e:
         _job_update(jid, status="error", progress=0, error=str(e))
+        _jobs_cache["__dirty__"] = True
 
 # ---- API ----
 
@@ -355,7 +404,7 @@ def get_templates(): return {"doc":"Dọc 9:16","ngang":"Ngang 16:9","vuong":"Vu
 
 @app.get("/api/voices")
 def get_voices():
-    """Danh sachs giọng đọc: VieNeu (vi) + macOS say (en)"""
+    """Danh sách giọng đọc: VieNeu (vi) + macOS say (en)"""
     voices = [
         {"id": "female_south", "name": "🇻🇳 Nữ Nam Bộ", "lang": "vi", "engine": "VieNeu"},
         {"id": "female_north", "name": "🇻🇳 Nữ Bắc Bộ", "lang": "vi", "engine": "VieNeu"},
@@ -379,11 +428,45 @@ def preview_voice(voice: str, text: str = "Xin chào, đây là giọng đọc c
                        headers={"Access-Control-Allow-Origin": "*",
                                 "Content-Disposition": "inline"})
 
+# FIX: thêm endpoint warmup-tts để frontend không bị 404
+@app.get("/api/warmup-tts")
+def warmup_tts():
+    """Warm up TTS engine — ping VieNeu, trả về status"""
+    try:
+        req_obj = _ur.Request("http://localhost:6023/v1/audio/speech",
+                              data=json.dumps({"model":"vieneu","input":"test","voice":"female_south","speed":1.0}).encode(),
+                              method="POST")
+        req_obj.add_header("Content-Type", "application/json")
+        with _ur.urlopen(req_obj, timeout=5) as r:
+            r.read(16)
+        return {"status": "ready", "engine": "vieneu"}
+    except Exception as e:
+        return {"status": "unavailable", "engine": "vieneu", "detail": str(e)}
+
+# FIX: thêm endpoint bgm-files để frontend load được danh sách nhạc custom
+@app.get("/api/bgm-files")
+def get_bgm_files():
+    """Liệt kê file MP3/WAV/M4A trong bgm_audio/"""
+    files = []
+    for ext in ("mp3", "wav", "m4a"):
+        for f in sorted(BGM_DIR.glob(f"*.{ext}")):
+            files.append({"id": f.stem, "name": f.stem.replace("-", " ").replace("_", " ").title(), "file": f.name})
+    # Thêm built-in styles
+    builtins = [
+        {"id": "ambient", "name": "Ambient", "file": None},
+        {"id": "corporate", "name": "Corporate", "file": None},
+        {"id": "tech", "name": "Tech", "file": None},
+        {"id": "cinematic", "name": "Cinematic", "file": None},
+        {"id": "none", "name": "Không nhạc", "file": None},
+    ]
+    return {"files": files, "builtins": builtins}
+
 @app.post("/api/generate", status_code=201)
 def generate(req: GenerateRequest, bg: BackgroundTasks):
     if not req.url and not req.text:
         raise HTTPException(400, "Cần url hoặc text")
-    jid = hashlib.md5(f"{time.time()}{req.url or req.text}".encode()).hexdigest()
+    # FIX: dùng uuid4 thay vì md5(timestamp+url) để tránh collision
+    jid = uuid.uuid4().hex
     _job_create(jid, req.model_dump_json())
     bg.add_task(process_job, jid, req)
     return {"job_id": jid, "status": "queued", "check_url": f"/api/jobs/{jid}"}
@@ -401,13 +484,19 @@ def list_jobs():
 
 @app.get("/output/{filename}")
 def serve(filename: str):
-    fp = OUTPUT_DIR / filename
+    # FIX: path traversal protection
+    try:
+        fp = (OUTPUT_DIR / filename).resolve()
+        output_resolved = OUTPUT_DIR.resolve()
+        if not str(fp).startswith(str(output_resolved) + os.sep) and fp != output_resolved:
+            raise HTTPException(403, "Forbidden")
+    except Exception:
+        raise HTTPException(403, "Forbidden")
     if not fp.exists(): raise HTTPException(404)
     return FileResponse(str(fp), media_type="video/mp4", headers={"Access-Control-Allow-Origin":"*"})
 
 @app.get("/healthz")
-def healthz(): return {"status":"ok","machine":"Macmini","gpu":"Apple M4"}
-
+def healthz(): return {"status":"ok","machine":"Macmini","gpu":"Apple M4","version": APP_VERSION}
 
 # ===== VOICE LIBRARY PROXY =====
 @app.get("/api/voice-library/voices")
@@ -467,11 +556,10 @@ def _try_tts(data: dict):
     except Exception as e:
         raise __import__("fastapi").HTTPException(503, f"TTS engine '{engine}' failed: {str(e)}")
 
-
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="static")
 
 if __name__ == "__main__":
-    # FIX-05: Recover stale jobs on startup
+    # FIX: Recover stale jobs on startup
     try:
         db = _job_db()
         stale = db.execute("SELECT job_id FROM jobs WHERE status IN ('queued','processing')").fetchall()
@@ -489,6 +577,6 @@ if __name__ == "__main__":
         print("Voice Library spawned on :8769")
     else:
         print("voice_library.py not found at", str(_vlp))
-    print(f"🚀 X-Video Server v1.1")
+    print(f"🚀 X-Video Server v{APP_VERSION}")
     print(f"   http://0.0.0.0:8767")
     uvicorn.run(app, host="0.0.0.0", port=8767)
