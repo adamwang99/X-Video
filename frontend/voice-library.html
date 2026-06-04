@@ -601,7 +601,7 @@ async function doUpload(){
 
   try{
     fill.style.width='50%';
-    var r=await fetch('/api/voice-library/voices/clone',{method:'POST',body:fd});
+    var r=await fetch('/api/clone-voice',{method:'POST',body:fd});
     fill.style.width='90%';
     var d=await r.json();
     if(d.error||(!d.success&&!d.voice)){throw new Error(d.error||d.detail||'Upload thất bại')}
@@ -637,7 +637,7 @@ async function doClone(){
 
   try{
     fill.style.width='40%';
-    var r=await fetch('/api/voice-library/voices/clone',{method:'POST',body:fd});
+    var r=await fetch('/api/clone-voice',{method:'POST',body:fd});
     fill.style.width='80%';
     var d=await r.json();
     if(d.error||(!d.success&&!d.voice)){throw new Error(d.error||d.detail||'Clone thất bại')}
