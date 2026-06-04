@@ -8,7 +8,7 @@ import subprocess, json, os, re, shutil, time, hashlib, threading, sqlite3, uuid
 from pathlib import Path
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -559,6 +559,30 @@ def _vld(voice_id: str):
         with _ur.urlopen(r, timeout=5) as resp:
             return __import__("json").loads(resp.read())
     except: return {"success": False}
+
+@app.post("/api/clone-voice")
+async def _clone_voice_proxy(
+    name: str,
+    file: UploadFile = File(...),
+    engine: str = "vieneu",
+    language: str = "vi",
+    gender: str = "unknown",
+):
+    # Proxy to the voice library's clone endpoint
+    import httpx
+    async with httpx.AsyncClient() as client:
+        # Prepare the form data
+        files = {"file": (file.filename, await file.read(), file.content_type)}
+        data = {"name": name, "engine": engine, "language": language, "gender": gender}
+        try:
+            resp = await client.post(
+                "http://127.0.0.1:8769/api/voice-library/voices/clone",
+                files=files,
+                data=data,
+            )
+            return resp.json()
+        except Exception as e:
+            raise HTTPException(500, f"Voice library clone failed: {str(e)}")
 
 @app.post("/api/try-tts")
 def _try_tts(data: dict):
