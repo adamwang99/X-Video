@@ -7,7 +7,7 @@ Quản lý thư viện giọng: clone, upload, preview, list, delete.
 Tích hợp với VieNeu TTS và OmniVoice cho voice design.
 """
 
-import io, os, json, re, time, hashlib, shutil, threading, subprocess
+import io, os, json, re, time, hashlib, shutil, threading, subprocess, tempfile
 from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
@@ -65,11 +65,30 @@ class VoiceMeta(BaseModel):
 # ===== VOICE METADATA STORE =====
 def load_voices() -> dict:
     if VOICE_META_FILE.exists():
-        return json.loads(VOICE_META_FILE.read_text())
+        raw = VOICE_META_FILE.read_text()
+        if not raw.strip():
+            print(f'[WARN] voice-metadata.json is empty - starting fresh')
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as e:
+            print(f'[CRITICAL] voice-metadata.json corrupted: {e}')
+            backup = VOICE_META_FILE.with_suffix('.json.bak')
+            if backup.exists():
+                print(f'[RECOVERY] Loading from {backup}')
+                return json.loads(backup.read_text())
+            return {}
     return {}
 
 def save_voices(voices: dict):
-    VOICE_META_FILE.write_text(json.dumps(voices, indent=2, ensure_ascii=False))
+    """Atomic write: .tmp -> flush+fsync -> os.replace"""
+    tmp_path = VOICE_META_FILE.with_suffix('.json.tmp')
+    data = json.dumps(voices, indent=2, ensure_ascii=False)
+    with open(tmp_path, 'w', encoding='utf-8') as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, VOICE_META_FILE)
 
 # Initialize with built-in voices
 def init_builtin_voices():
@@ -234,10 +253,42 @@ async def clone_voice(
     # Generate voice ID
     voice_id = hashlib.md5(f"{name}{datetime.now().isoformat()}".encode()).hexdigest()[:12]
 
-    # Save uploaded file
-    clone_path = CLONE_DIR / f"{voice_id}{ext}"
+    # Save uploaded file (atomic write via .partial)
     content = await file.read()
-    clone_path.write_bytes(content)
+    partial_path = CLONE_DIR / f"{voice_id}.partial{ext}"
+    clone_path = CLONE_DIR / f"{voice_id}{ext}"
+
+    # Write to .partial first
+    with open(partial_path, 'wb') as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+
+    # Verify file integrity before finalizing
+    if len(content) == 0:
+        partial_path.unlink(missing_ok=True)
+        raise HTTPException(400, "Uploaded file is empty")
+
+    # Verify audio format with ffprobe
+    try:
+        probe = subprocess.run(
+            ['/opt/homebrew/bin/ffprobe', '-v', 'quiet', '-show_entries', 'format=duration,format_name',
+             '-of', 'csv=p=0', str(partial_path)],
+            capture_output=True, text=True, timeout=15
+        )
+        if probe.returncode != 0:
+            partial_path.unlink(missing_ok=True)
+            raise HTTPException(400, "Uploaded file is not valid audio")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, Exception):
+        partial_path.unlink(missing_ok=True)
+        raise HTTPException(400, "Audio validation timed out")
+
+    # Atomic finalize
+        os.replace(partial_path, clone_path)
+    finally:
+        # Catch-all: remove .partial if atomic rename failed
+        if partial_path.exists():
+            partial_path.unlink(missing_ok=True)
 
     # Convert to WAV if needed (for consistent processing)
     wav_path = CLONE_DIR / f"{voice_id}_ref.wav"
@@ -260,7 +311,7 @@ async def clone_voice(
         import requests
         resp = requests.post(
             "http://localhost:6023/v1/audio/speech",
-            json={"model": "vieneu", "input": preview_text, "voice": "female_south"},
+            json={"model": "vieneu", "input": preview_text, "voice": voice_id},
             timeout=60
         )
         if resp.status_code == 200:
@@ -343,23 +394,33 @@ def preview_voice(voice_id: str):
         voice = v["id"]
         lang = "vi"
 
-    # Generate via X-Video preview-voice API
-    try:
-        import requests
-        resp = requests.get(
-            "http://localhost:8767/api/preview-voice",
-            params={"voice": voice, "text": text, "language": lang},
-            timeout=60
-        )
-        if resp.status_code == 200:
-            return FileResponse(
-                io.BytesIO(resp.content),
-                media_type="audio/mp3",
-                filename=f"{voice_id}_preview.mp3"
-            )
-    except:
-        pass
-
+    # Generate via VieNeu TTS directly
+    preview_cache = PREVIEW_DIR / f"{voice_id}_preview.mp3"
+    if not preview_cache.exists() or preview_cache.stat().st_size < 1000:
+        try:
+            import requests
+            if v["engine"] == "macos":
+                import subprocess, shutil
+                aiff = PREVIEW_DIR / f"{voice_id}_tmp.aiff"
+                subprocess.run(["say", "-v", voice_id, text, "-o", str(aiff)], timeout=20)
+                subprocess.run(["/opt/homebrew/bin/ffmpeg", "-y", "-i", str(aiff),
+                    "-acodec", "libmp3lame", "-b:a", "128k", str(preview_cache)],
+                    capture_output=True, timeout=20)
+                if aiff.exists(): aiff.unlink()
+            else:
+                resp = requests.post(
+                    "http://localhost:6023/v1/audio/speech",
+                    json={"model": "vieneu", "input": text, "voice": voice_id, "speed": 1.0},
+                    timeout=120
+                )
+                if resp.status_code == 200:
+                    preview_cache.write_bytes(resp.content)
+        except Exception as e:
+            print(f"Preview generation failed for {voice_id}: {e}")
+    if preview_cache.exists() and preview_cache.stat().st_size > 100:
+        return FileResponse(str(preview_cache), media_type="audio/mp3",
+                          headers={"Content-Disposition": "inline",
+                                   "Cache-Control": "max-age=3600"})
     raise HTTPException(503, "Preview generation failed")
 
 @app.post("/api/voices/warmup")
@@ -600,3 +661,4 @@ if __name__ == "__main__":
     print(f"   API: http://0.0.0.0:8769")
     print(f"   Voices: {len(load_voices())} total")
     uvicorn.run(app, host="0.0.0.0", port=8769)
+

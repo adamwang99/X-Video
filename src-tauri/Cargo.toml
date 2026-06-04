@@ -1,6 +1,6 @@
 [package]
 name = "xvideo-studio"
-version = "1.5.8"
+version = "1.5.9"
 description = "AI World URL-to-Video Studio"
 authors = ["AI World"]
 edition = "2021"
@@ -15,5 +15,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -120,7 +120,7 @@ async function play(id){
   if(currentAudio){currentAudio.pause();currentAudio=null}
   try{
     // Use direct preview-voice endpoint (works for built-in + cloned)
-    var r=await fetch('/api/preview-voice?voice='+id+'&language='+(id.startsWith('female')?'vi':'en'));
+    var viVoices=['female_south','female_north','male_south','male_north'];var lang=viVoices.includes(id)?'vi':'en';var r=await fetch('/api/preview-voice?voice='+id+'&language='+lang);
     if(!r.ok)throw new Error(r.status);
     var blob=await r.blob();
     var url=URL.createObjectURL(blob);

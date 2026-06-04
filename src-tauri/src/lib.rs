@@ -3,9 +3,27 @@ use std::process::Command;
 use std::time::Duration;
 use tauri::Manager;
 
+/// Sanitize CLI args — block potential injection
+fn sanitize_args(argv: Vec<String>) {
+    for arg in &argv {
+        if arg.contains("&&") || arg.contains(";;") || arg.contains("$(") || arg.contains("`") {
+            eprintln!("Blocked suspicious arg: {}", arg);
+            std::process::exit(1);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            sanitize_args(argv);
+            // Focus existing window instead of opening new one
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app| {
             let handle = app.handle().clone();
             let res_dir = handle.path().resource_dir().expect("resource dir");
