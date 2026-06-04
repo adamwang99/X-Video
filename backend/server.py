@@ -428,20 +428,41 @@ def preview_voice(voice: str, text: str = "Xin chào, đây là giọng đọc c
                        headers={"Access-Control-Allow-Origin": "*",
                                 "Content-Disposition": "inline"})
 
-# FIX: thêm endpoint warmup-tts để frontend không bị 404
+# TTS readiness state — background warmup thread cập nhật liên tục
+_tts_state = {"status": "warming_up", "engine": "vieneu", "detail": "Đang khởi động model...", "checked_at": 0}
+_tts_lock = threading.Lock()
+
+def _warmup_worker():
+    """Background thread: thử gọi VieNeu mỗi 5s cho đến khi ready"""
+    import time as _time
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            req_obj = _ur.Request("http://localhost:6023/v1/audio/speech",
+                                  data=json.dumps({"model":"vieneu","input":"khởi động","voice":"female_south","speed":1.0}).encode(),
+                                  method="POST")
+            req_obj.add_header("Content-Type", "application/json")
+            with _ur.urlopen(req_obj, timeout=20) as r:
+                r.read(16)
+            with _tts_lock:
+                _tts_state["status"] = "ready"
+                _tts_state["detail"] = "TTS sẵn sàng"
+                _tts_state["checked_at"] = _time.time()
+            print("[TTS] VieNeu ready")
+            return  # done
+        except Exception as e:
+            with _tts_lock:
+                _tts_state["status"] = "warming_up"
+                _tts_state["detail"] = f"Đang tải model... (lần {attempt})"
+                _tts_state["checked_at"] = _time.time()
+            _time.sleep(5)
+
 @app.get("/api/warmup-tts")
 def warmup_tts():
-    """Warm up TTS engine — ping VieNeu, trả về status"""
-    try:
-        req_obj = _ur.Request("http://localhost:6023/v1/audio/speech",
-                              data=json.dumps({"model":"vieneu","input":"test","voice":"female_south","speed":1.0}).encode(),
-                              method="POST")
-        req_obj.add_header("Content-Type", "application/json")
-        with _ur.urlopen(req_obj, timeout=5) as r:
-            r.read(16)
-        return {"status": "ready", "engine": "vieneu"}
-    except Exception as e:
-        return {"status": "unavailable", "engine": "vieneu", "detail": str(e)}
+    """Trả về TTS readiness state hiện tại (non-blocking)"""
+    with _tts_lock:
+        return dict(_tts_state)
 
 # FIX: thêm endpoint bgm-files để frontend load được danh sách nhạc custom
 @app.get("/api/bgm-files")
@@ -577,6 +598,8 @@ if __name__ == "__main__":
         print("Voice Library spawned on :8769")
     else:
         print("voice_library.py not found at", str(_vlp))
+    # Khởi động background warmup thread cho VieNeu TTS
+    threading.Thread(target=_warmup_worker, daemon=True).start()
     print(f"🚀 X-Video Server v{APP_VERSION}")
     print(f"   http://0.0.0.0:8767")
     uvicorn.run(app, host="0.0.0.0", port=8767)

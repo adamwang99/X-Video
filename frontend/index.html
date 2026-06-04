@@ -128,12 +128,33 @@
     /* FIX: input mode toggle */
     .input-mode-btn { font-size: 11px; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); color: #bbc9cc; background: transparent; transition: all 0.15s; }
     .input-mode-btn.active { border-color: rgba(68,216,241,0.4); color: #44d8f1; background: rgba(68,216,241,0.08); }
+
+    /* TTS loading overlay */
+    #ttsOverlay { position: fixed; inset: 0; z-index: 9999; background: rgba(10,10,20,0.92); backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    #ttsOverlay.hidden { display: none; }
+    .tts-spinner { width: 48px; height: 48px; border: 3px solid rgba(68,216,241,0.15); border-top-color: #44d8f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tts-status-text { font-size: 15px; color: #e3e1e9; font-weight: 600; text-align: center; }
+    .tts-detail-text { font-size: 12px; color: #bbc9cc; text-align: center; max-width: 280px; line-height: 1.5; }
+    .tts-dots { display: flex; gap: 6px; }
+    .tts-dots span { width: 8px; height: 8px; border-radius: 50%; background: #44d8f1; animation: tts-dot 1.2s infinite; }
+    .tts-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .tts-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tts-dot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.1); } }
 </style>
 </head>
 <body class="antialiased min-h-screen flex selection:bg-primary selection:text-on-primary">
 <div class="aurora-orb-1"></div>
 <div class="aurora-orb-2"></div>
 <audio id="pa" style="display:none"></audio>
+
+<!-- TTS Loading Overlay -->
+<div id="ttsOverlay">
+  <div class="tts-spinner"></div>
+  <div class="tts-status-text">🎙️ Đang khởi động AI Voice</div>
+  <div class="tts-detail-text" id="ttsDetailText">Đang tải model VieNeu TTS...<br>Vui lòng đợi trong giây lát</div>
+  <div class="tts-dots"><span></span><span></span><span></span></div>
+  <div style="margin-top:8px;font-size:11px;color:#869396">X-Video Studio — AI World</div>
+</div>
 
 <!-- SideNavBar -->
 <nav aria-label="Sidebar Navigation" class="hidden md:flex flex-col h-screen w-64 border-r border-white/20 bg-white/5 dark:bg-white/5 backdrop-blur-[24px] py-md px-sm fixed left-0 top-0 z-40">
@@ -376,14 +397,33 @@
 <script>
 var voices=[],favs=JSON.parse(localStorage.getItem("xvf")||"[]"),sV="female_south",sM="ambient",cf=null,pi=null,ji=null,bgmFiles=[];
 var inputMode="url"; // FIX: track current input mode
+var ttsReady=false;
 
 document.addEventListener("DOMContentLoaded",function(){
   loadVoices();
   loadBgm();
   loadVersion();
-  // FIX: warmup — endpoint now exists, no more 404
-  fetch("/api/warmup-tts").catch(function(){});
+  pollTtsReady();
 });
+
+// TTS readiness polling
+var _ttsPollTimer=null;
+function pollTtsReady(){
+  fetch("/api/warmup-tts").then(function(r){return r.json()}).then(function(d){
+    var detail=document.getElementById("ttsDetailText");
+    if(d.status==="ready"){
+      ttsReady=true;
+      document.getElementById("ttsOverlay").classList.add("hidden");
+      clearTimeout(_ttsPollTimer);
+    } else {
+      ttsReady=false;
+      if(detail) detail.innerHTML=(d.detail||"Đang tải model...").replace(/\(/g,'<br><span style="font-size:10px;opacity:0.6">(').replace(/\)/g,')</span>');
+      _ttsPollTimer=setTimeout(pollTtsReady, 3000);
+    }
+  }).catch(function(){
+    _ttsPollTimer=setTimeout(pollTtsReady, 5000);
+  });
+}
 
 // FIX: fetch version từ /healthz
 function loadVersion(){
@@ -501,6 +541,11 @@ async function doClone(){
 }
 
 function genVideo(){
+  // Guard: block nếu TTS chưa ready
+  if(!ttsReady){
+    showE("⏳ AI Voice đang khởi động, vui lòng đợi thêm...");
+    return;
+  }
   // FIX: lấy input tùy theo mode (URL hoặc text)
   var u="",tx="";
   if(inputMode==="url"){
