@@ -78,5 +78,92 @@
     "sample_path": "",
     "created_at": "2026-01-01",
     "size_bytes": 0
+  },
+  "5b7f5e88a578": {
+    "id": "5b7f5e88a578",
+    "name": "Vtv nữ",
+    "engine": "vieneu",
+    "source": "clone",
+    "language": "vi",
+    "gender": "female",
+    "sample_path": "/Users/tuan/X-Video-Fresh/voice-library/cloned-samples/5b7f5e88a578.mp3",
+    "preview_path": "/Users/tuan/X-Video-Fresh/voice-library/previews/5b7f5e88a578_preview.mp3",
+    "created_at": "2026-06-05T21:04:21.903816",
+    "size_bytes": 202320,
+    "clone_method": "feature_extraction",
+    "features": {
+      "duration_sec": 10.1,
+      "sample_rate": 22050,
+      "rms_energy": 0.12646399438381195,
+      "zero_crossing_rate": 0.08049921158256881,
+      "mean_pitch_hz": 1288.1259765625,
+      "pitch_std_hz": 1111.1510009765625,
+      "spectral_centroid": 1333.0086603057773,
+      "mfcc_mean": [
+        -256.1050109863281,
+        138.6568145751953,
+        -13.113970756530762,
+        25.600751876831055,
+        -39.97005844116211
+      ]
+    }
+  },
+  "b9bc0d55b1a7": {
+    "id": "b9bc0d55b1a7",
+    "name": "vtv nữ2",
+    "engine": "vieneu",
+    "source": "clone",
+    "language": "vi",
+    "gender": "female",
+    "sample_path": "/Users/tuan/X-Video-Fresh/voice-library/cloned-samples/b9bc0d55b1a7.mp3",
+    "preview_path": "/Users/tuan/X-Video-Fresh/voice-library/previews/b9bc0d55b1a7_preview.mp3",
+    "created_at": "2026-06-05T21:04:56.790142",
+    "size_bytes": 202320,
+    "clone_method": "feature_extraction",
+    "features": {
+      "duration_sec": 10.1,
+      "sample_rate": 22050,
+      "rms_energy": 0.12646399438381195,
+      "zero_crossing_rate": 0.08049921158256881,
+      "mean_pitch_hz": 1288.1259765625,
+      "pitch_std_hz": 1111.1510009765625,
+      "spectral_centroid": 1333.0086603057773,
+      "mfcc_mean": [
+        -256.1050109863281,
+        138.6568145751953,
+        -13.113970756530762,
+        25.600751876831055,
+        -39.97005844116211
+      ]
+    }
+  },
+  "3ba63ea12c7d": {
+    "id": "3ba63ea12c7d",
+    "name": "VTV nữ",
+    "engine": "vieneu",
+    "source": "clone",
+    "language": "vi",
+    "gender": "female",
+    "sample_path": "/Users/tuan/X-Video-Fresh/voice-library/cloned-samples/3ba63ea12c7d.mp3",
+    "preview_path": "/Users/tuan/X-Video-Fresh/voice-library/previews/3ba63ea12c7d_preview.mp3",
+    "created_at": "2026-06-05T23:07:52.198609",
+    "size_bytes": 202320,
+    "clone_method": "feature_extraction",
+    "features": {
+      "duration_sec": 10.1,
+      "sample_rate": 22050,
+      "rms_energy": 0.12646399438381195,
+      "zero_crossing_rate": 0.08049921158256881,
+      "mean_pitch_hz": 1288.1259765625,
+      "pitch_std_hz": 1111.1510009765625,
+      "spectral_centroid": 1333.0086603057773,
+      "mfcc_mean": [
+        -256.1050109863281,
+        138.6568145751953,
+        -13.113970756530762,
+        25.600751876831055,
+        -39.97005844116211
+      ]
+    }
   }
 }

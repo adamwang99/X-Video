@@ -8,13 +8,31 @@ import subprocess, json, os, re, shutil, time, hashlib, threading, sqlite3, uuid
 from pathlib import Path
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
+import threading
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn, urllib.request; _ur = urllib.request
 import subprocess as _sp, pathlib as _pl
+import html as _html
+try:
+    import xvideo_scenes
+    import xvideo_pexels
+    import xvideo_apikeys
+    import xvideo_storyboard
+except Exception as _e:
+    xvideo_scenes = None
+    xvideo_pexels = None
+    xvideo_apikeys = None
+    xvideo_storyboard = None
+    print('[scene] module load failed:', _e)
+try:
+    import xvideo_hv
+except Exception as _e:
+    xvideo_hv = None
+    print('[hv] bridge load failed:', _e)
 
 # CONFIG
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
@@ -23,9 +41,39 @@ PROJECT_DIR = Path(__file__).parent.parent / "render-project"
 BGM_DIR = Path(__file__).parent.parent / "bgm_audio"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DIR.mkdir(parents=True, exist_ok=True)
+# API key store init + seed Pexels key from existing config
+try:
+    if xvideo_apikeys:
+        xvideo_apikeys.init(PROJECT_DIR / "api_keys.json")
+        if not xvideo_apikeys.get_active_key("pexels") and xvideo_pexels and getattr(xvideo_pexels, "PEXELS_KEY", ""):
+            xvideo_apikeys.add_key("pexels", xvideo_pexels.PEXELS_KEY, "Default Pexels key")
+        if xvideo_pexels and hasattr(xvideo_pexels, "set_keymanager"):
+            xvideo_pexels.set_keymanager(xvideo_apikeys)
+except Exception as _ke:
+    print(f"[apikeys] init failed: {_ke}")
+# LLM provider adapter + lightweight settings store
+try:
+    import xvideo_llm
+    if xvideo_apikeys and hasattr(xvideo_llm, "set_keymanager"):
+        xvideo_llm.set_keymanager(xvideo_apikeys)
+except Exception as _le:
+    xvideo_llm = None
+    print(f"[llm] init failed: {_le}")
+
+SETTINGS_PATH = PROJECT_DIR / "app_settings.json"
+def load_settings():
+    try:
+        return json.loads(SETTINGS_PATH.read_text())
+    except Exception:
+        return {"llm_provider": "local_ollama", "llm_model": "", "llm_base_url": ""}
+def save_settings(d):
+    cur = load_settings(); cur.update({k: v for k, v in d.items() if v is not None})
+    tmp = str(SETTINGS_PATH) + ".tmp"
+    Path(tmp).write_text(json.dumps(cur, ensure_ascii=False, indent=2))
+    os.replace(tmp, str(SETTINGS_PATH)); return cur
 BGM_DIR.mkdir(parents=True, exist_ok=True)
 
-APP_VERSION = "1.5.9"
+APP_VERSION = "1.28.3"
 
 # Resolution -> height multiplier (portrait height)
 RES_MAP = {"hd": 720, "fhd": 1080, "2k": 1440, "4k": 2160}
@@ -63,6 +111,21 @@ class GenerateRequest(BaseModel):
     style: str = "news"
     resolution: str = "fhd"
     music: str = "ambient"
+    image_url: str = None  # source URL for images when text/script is edited
+    use_stock: bool = None  # use Pexels stock photos to fill scenes (default True)
+    review_storyboard: bool = True  # pause after storyboard built for user review
+    target_length: int = 0  # seconds; 0 = auto by content length
+
+class RewriteRequest(BaseModel):
+    text: str
+    title: Optional[str] = None
+    style: str = "news"          # news|reportage|analysis|story|hot
+    length: int = 60             # target video length in seconds
+    tone: Optional[str] = None   # optional extra tone hint
+    random: bool = False         # pick a random style/tone for variety (n8n use)
+    llm_provider: Optional[str] = None  # override saved provider for this call
+    llm_model: Optional[str] = None
+    llm_base_url: Optional[str] = None
 
 jobs_lock = threading.Lock()
 # ---- Job DB (SQLite WAL mode) ----
@@ -164,9 +227,24 @@ def _job_list():
     return fresh
 
 def clean_html(h):
-    # FIX: strip script/style blocks trước, sau đó strip tags
+    # FIX: strip script/style blocks trước, sau đó strip tags, rồi decode entities
+    if not h:
+        return ""
+    # 1) remove script/style/noscript blocks entirely
     h = re.sub(r'<(script|style|noscript)[^>]*>.*?</\1>', ' ', h, flags=re.DOTALL | re.IGNORECASE)
-    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', re.sub(r'&[a-z]+;', ' ', h))).strip()
+    # 2) drop all remaining tags
+    h = re.sub(r'<[^>]+>', ' ', h)
+    # 3) decode ALL HTML entities (named &amp; AND numeric &#8220; &#8221;)
+    h = _html.unescape(h)
+    # 4) normalize smart punctuation to plain ASCII for clean TTS + captions
+    repl = {
+        '\u201c': '"', '\u201d': '"', '\u2018': "'", '\u2019': "'",
+        '\u2013': '-', '\u2014': '-', '\u2026': '...', '\u00a0': ' ',
+    }
+    for k, v in repl.items():
+        h = h.replace(k, v)
+    # 5) collapse whitespace
+    return re.sub(r'\s+', ' ', h).strip()
 
 def categorize(slug):
     if "phan-bien" in slug or "thuc-thi" in slug: return "TỔNG HỢP"
@@ -194,6 +272,22 @@ def fetch_content(url):
     title = clean_html(m.group(1)) if m else slug.replace('-',' ')
     return title, html, title, datetime.now().strftime('%Y-%m-%d'), "TIN TỨC"
 
+
+def get_article_images(url):
+    """Fetch article images (featured + content) via WP API with _embed."""
+    try:
+        slug = url.rstrip('/').split('/')[-1].split('?')[0]
+        wp = f"http://192.168.1.9:8080/vi/wp-json/wp/v2/posts?slug={slug}&_embed=1"
+        with urllib.request.urlopen(urllib.request.Request(wp), timeout=10) as r:
+            posts = json.loads(r.read())
+        if posts and xvideo_scenes:
+            p = posts[0]
+            content_html = p.get('content', {}).get('rendered', '')
+            return xvideo_scenes.extract_images(url, content_html, p)
+    except Exception as e:
+        print(f"[scene] get_article_images fail: {e}", flush=True)
+    return []
+
 def generate_voice(text, voice, output_path, language="vi"):
     """TTS — Macmini VieNeu (Vietnamese) or macOS say (English)"""
     wc = len(text.split())
@@ -204,7 +298,39 @@ def generate_voice(text, voice, output_path, language="vi"):
         import json as jsonmod
         voice_map = {"female_south": "female_south", "female_north": "female_north",
                      "male_south": "male_south", "male_north": "male_north"}
-        vi_voice = voice_map.get(voice, "female_south")
+
+        # Check if voice is a clone (not in builtin map) — fetch ref from voice_library
+        if voice not in voice_map and voice:
+            vi_voice = "female_south"  # fallback
+            try:
+                vl_req = ureq.Request(f"http://127.0.0.1:8769/api/voices/{voice}")
+                with ureq.urlopen(vl_req, timeout=5) as vlr:
+                    vld = jsonmod.loads(vlr.read())
+                ref_audio = vld.get("ref_audio_path") or vld.get("sample_path", "")
+                ref_txt = vld.get("ref_text", "")
+                if ref_audio and ref_txt:
+                    # Call clone-speech with the script text
+                    clone_payload = jsonmod.dumps({
+                        "input": text, "ref_audio_path": ref_audio,
+                        "ref_text": ref_txt, "response_format": "mp3"
+                    }).encode()
+                    clone_req = ureq.Request("http://localhost:6023/v1/audio/clone-speech",
+                                            data=clone_payload, method="POST")
+                    clone_req.add_header("Content-Type", "application/json")
+                    with ureq.urlopen(clone_req, timeout=300) as cr:
+                        with open(output_path, "wb") as cf:
+                            cf.write(cr.read())
+                    r_dur = subprocess.run(['/opt/homebrew/bin/ffprobe','-v','quiet',
+                            '-show_entries','format=duration','-of','csv=p=0',str(output_path)],
+                           capture_output=True, text=True, timeout=10)
+                    dur = float(r_dur.stdout.strip() or 50)
+                    return int(dur), wc, f"vieneu_clone_{voice}"
+                else:
+                    print(f"[clone] Voice {voice} has no ref_text, falling back")
+            except Exception as e:
+                print(f"[clone] Clone voice fetch failed: {e}, falling back")
+        else:
+            vi_voice = voice_map.get(voice, "female_south")
         payload = jsonmod.dumps({
             "model": "vieneu", "input": text,
             "voice": vi_voice, "speed": 1.0
@@ -329,17 +455,99 @@ tl.to("#root>*",{{opacity:0,duration:1.5,ease:"power2.in"}},DUR-4);
 window.__timelines["main"]=tl;
 </script></body></html>'''
 
+def _job_render(jid: str):
+    """Phase 2: render storyboard -> video. Storyboard must already exist."""
+    try:
+        from pathlib import Path
+        jd = PROJECT_DIR / jid
+        sb = xvideo_storyboard.load(jd) if xvideo_storyboard else None
+        if not sb:
+            raise Exception("Storyboard not found - cannot render")
+        _job_update(jid, status="rendering", progress=70)
+        # build HTML from storyboard
+        html = xvideo_storyboard.render_html(sb, "voice.mp3", "bgm.mp3",
+                                              datetime.now().strftime('%Y-%m-%d'),
+                                              ASPECT_MAP, RES_MAP)
+        with open(jd/"index.html","w") as f: f.write(html)
+        with open(jd/"hyperframes.json","w") as f:
+            json.dump({"$schema":"https://hyperframes.heygen.com/schema/hyperframes.json","paths":{"blocks":"compositions","components":"compositions/components","assets":"assets"}}, f)
+        env = os.environ.copy(); env["PATH"] = os.path.expanduser("~/.local/bin")+":"+env.get("PATH","")
+        proc = subprocess.run(["npx","hyperframes@latest","render"], cwd=str(jd), capture_output=True, text=True, timeout=600, env=env)
+        if proc.returncode != 0:
+            raise Exception(f"Render fail: {proc.stderr[-300:]}")
+        mp4s = sorted((jd/"renders").glob("*.mp4"), key=os.path.getmtime, reverse=True)
+        if not mp4s: raise Exception("No MP4 output")
+        _job_update(jid, status="processing", progress=90)
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        out_name = f"xvideo_{jid[:8]}_{ts}.mp4"
+        out_path = OUTPUT_DIR / out_name
+        shutil.copy(str(mp4s[0]), str(out_path))
+        size_kb = out_path.stat().st_size // 1024
+        # restore meta from job (jobs persisted in sqlite)
+        cur = _job_get(jid) or {}
+        meta = cur.get("result") if isinstance(cur.get("result"), dict) else {}
+        if not meta:
+            try: meta = json.loads(cur.get("result_json") or "{}")
+            except Exception: meta = {}
+        meta.update({"video_path": out_name, "duration": sb.get("total_duration"),
+                     "size_kb": size_kb, "title": sb.get("title","")[:80]})
+        _job_update(jid, status="done", progress=100, result_json=json.dumps(meta))
+        _jobs_cache["__dirty__"] = True
+    except Exception as e:
+        _job_update(jid, status="error", progress=0, error=str(e))
+        _jobs_cache["__dirty__"] = True
+
+
+def _estimate_target_length(text, requested=0):
+    """Return target seconds. 0/None = auto by content length."""
+    words = len((text or "").split())
+    if requested and int(requested) > 0:
+        return max(15, int(requested))
+    return int(max(30, min(360, round(words / 2.5))))
+
+def _fit_narration_length(text, target_seconds):
+    """Fit narration to a target length WITHOUT corrupting the reading text.
+
+    Hard rule (CEO 2026-06-06): never inject "..." into the middle of the script.
+    That destroyed sentences when read aloud. If content exceeds target, we trim
+    whole sentences from the END only, keeping a clean, readable narration. If it
+    barely exceeds, we keep it as-is and let scene durations stretch.
+    """
+    if not text:
+        return ""
+    text = text.strip()
+    target_words = int(max(40, target_seconds * 2.6))
+    words = text.split()
+    # Keep as-is unless it wildly exceeds the target.
+    if len(words) <= target_words * 1.4:
+        return text
+    # Trim by full sentences from the end so the script stays coherent.
+    import re as _re
+    sents = [p.strip() for p in _re.split(r"(?<=[.!?;])\s+", text) if p.strip()]
+    out, wc = [], 0
+    for sent in sents:
+        swc = len(sent.split())
+        if out and wc + swc > target_words:
+            break
+        out.append(sent); wc += swc
+    if not out:
+        out = sents[:1] if sents else [text]
+    return " ".join(out)
+
 def process_job(jid: str, req: GenerateRequest):
+    """Phase 1: build voice/bgm/storyboard. If review_storyboard=False, auto-render."""
     try:
         _job_update(jid, status="processing", progress=5)
         jd = PROJECT_DIR / jid; jd.mkdir(exist_ok=True)
 
         _job_update(jid, status="processing", progress=15)
-        if req.url:
-            title, content, excerpt, date_str, category = fetch_content(req.url)
-        elif req.text:
-            title = req.text[:150]; content = req.text; excerpt = title[:200]
+        if req.text:
+            # edited script mode: text is narration; optional image_url for visuals
+            title = (req.text.split(chr(10))[0][:150]).strip() or req.text[:150]
+            content = req.text; excerpt = req.text[:400]
             date_str = datetime.now().strftime('%Y-%m-%d'); category = "TIN TỨC"
+        elif req.url:
+            title, content, excerpt, date_str, category = fetch_content(req.url)
         else:
             raise ValueError("Cần url hoặc text")
 
@@ -347,7 +555,10 @@ def process_job(jid: str, req: GenerateRequest):
         cta = req.cta or "Theo dõi AI World để cập nhật tin tức công nghệ mới nhất!"
 
         _job_update(jid, status="processing", progress=30)
-        voice_text = f"AI World News. {hook} {excerpt or title}. {cta} Visit a i world dot v n."
+        narration_src = content or excerpt or title
+        target_seconds = _estimate_target_length(narration_src, getattr(req, "target_length", 0))
+        narration = _fit_narration_length(narration_src, target_seconds)
+        voice_text = narration
         duration, wc, actual_engine = generate_voice(voice_text, req.voice, jd/"voice.mp3", req.language)
 
         # FIX: voice_snapshot ghi lại engine thực sự dùng (kể cả fallback)
@@ -357,45 +568,232 @@ def process_job(jid: str, req: GenerateRequest):
         _job_update(jid, status="processing", progress=45)
         generate_bgm(req.music, duration, jd/"bgm.mp3")
 
-        _job_update(jid, status="processing", progress=55)
-        html = make_html(req.aspect, title, date_str, duration, "voice.mp3", "bgm.mp3", req.style, req.resolution)
-        with open(jd/"index.html","w") as f: f.write(html)
-        with open(jd/"hyperframes.json","w") as f:
-            json.dump({"$schema":"https://hyperframes.heygen.com/schema/hyperframes.json","paths":{"blocks":"compositions","components":"compositions/components","assets":"assets"}}, f)
-
-        _job_update(jid, status="processing", progress=70)
-        env = os.environ.copy(); env["PATH"] = os.path.expanduser("~/.local/bin")+":"+env.get("PATH","")
-        proc = subprocess.run(["npx","hyperframes@latest","render"], cwd=str(jd), capture_output=True, text=True, timeout=600, env=env)
-        if proc.returncode != 0:
-            raise Exception(f"Render fail: {proc.stderr[-300:]}")
-
-        mp4s = sorted((jd/"renders").glob("*.mp4"), key=os.path.getmtime, reverse=True)
-        if not mp4s: raise Exception("No MP4 output")
-
-        _job_update(jid, status="processing", progress=90)
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        out_name = f"xvideo_{jid[:8]}_{ts}.mp4"
-        out_path = OUTPUT_DIR / out_name
-        shutil.copy(str(mp4s[0]), str(out_path))
-        size_kb = out_path.stat().st_size // 1024
-
-        _job_update(jid, status="done", progress=100,
-            result_json=json.dumps({"video_path": out_name, "duration": duration, "size_kb": size_kb,
-                "word_count": wc, "tts_rate": actual_engine, "title": title[:80], "category": category,
-                "style": req.style, "aspect": req.aspect}))
-        # FIX: mark cache dirty after job done so list refreshes
-        _jobs_cache["__dirty__"] = True
+        _job_update(jid, status="processing", progress=50)
+        # Build storyboard (scenes + images) - then pause for user review if requested
+        if not xvideo_storyboard or not xvideo_scenes:
+            raise Exception("storyboard module not available")
+        img_src = req.url or req.image_url
+        images = get_article_images(img_src) if img_src else []
+        local_imgs = xvideo_scenes.download_images(images, jd) if images else []
+        scene_duration = max(duration, target_seconds if 'target_seconds' in locals() else duration)
+        _tmp = xvideo_scenes.build_scenes(narration, local_imgs or [None], scene_duration)
+        need = len(_tmp)
+        _st = load_settings()
+        _llm_opts = {"provider": _st.get("llm_provider") or "local_ollama",
+                     "model": _st.get("llm_model") or None,
+                     "base_url": _st.get("llm_base_url") or None}
+        kws_used = []
+        if ('xvideo_pexels' in globals() and xvideo_pexels) and len(local_imgs) < need and (req.use_stock if req.use_stock is not None else True):
+            try:
+                orient = xvideo_pexels.orientation_for_aspect(req.aspect)
+                kws_used = xvideo_pexels.derive_keywords(title, content, llm_opts=_llm_opts)
+                stock_urls = []
+                for kw in kws_used:
+                    stock_urls += xvideo_pexels.search_photos(kw, orient, per_page=4)
+                    if len(local_imgs) + len(stock_urls) >= need: break
+                extra = xvideo_scenes.download_images(stock_urls, jd) if stock_urls else []
+                local_imgs = local_imgs + extra
+                print(f"[pexels] added {len(extra)} stock photos (kw={kws_used})", flush=True)
+            except Exception as _pe:
+                print(f"[pexels] enrich failed: {_pe}", flush=True)
+        sb = xvideo_storyboard.build_storyboard(title, content, narration, local_imgs,
+                                                duration, req.aspect, req.style, req.resolution,
+                                                keywords=kws_used, llm_opts=_llm_opts)
+        xvideo_storyboard.save(jd, sb)
+        # save preliminary meta so result_json has snapshot for later merge
+        _job_update(jid, result_json=json.dumps({
+            "title": title[:80], "category": category, "duration": duration,
+            "word_count": wc, "style": req.style, "aspect": req.aspect,
+            "tts_rate": actual_engine, "scene_count": len(sb["scenes"]),
+        }))
+        if req.review_storyboard:
+            _job_update(jid, status="storyboard_ready", progress=60)
+            print(f"[storyboard] built {len(sb['scenes'])} scenes - waiting user review", flush=True)
+            _jobs_cache["__dirty__"] = True
+            return  # pause; user calls /api/storyboard/{jid}/render to continue
+        # auto-render
+        _job_render(jid)
+        return
     except Exception as e:
         _job_update(jid, status="error", progress=0, error=str(e))
         _jobs_cache["__dirty__"] = True
 
 # ---- API ----
 
+OLLAMA_URL = os.environ.get("XVIDEO_OLLAMA", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("XVIDEO_OLLAMA_MODEL", "hf.co/unsloth/gemma-4-12b-it-GGUF:Q4_K_M")
+
+STYLE_TONE = {
+    "news":      "giọng bản tin trung lập, súc tích, khách quan, ngắn gọn rõ ràng",
+    "reportage": "giọng phóng sự, kể có bối cảnh, dẫn dắt sinh động nhưng vẫn chính xác",
+    "analysis":  "giọng phân tích, mạch lạc, nêu nguyên nhân - hệ quả, có chiều sâu",
+    "story":     "giọng kể chuyện gần gũi, có cảm xúc, cuốn người nghe",
+    "hot":       "giọng tin nóng, dồn dập, nhấn mạnh tính thời sự, gây chú ý ngay",
+}
+STYLE_LIST = list(STYLE_TONE.keys())
+
+def _strip_llm_noise(t):
+    if not t:
+        return ""
+    # remove harmony-style channel tokens that this GGUF leaks
+    t = re.sub(r'<\|?channel\|?>', ' ', t)
+    t = re.sub(r'<\|[^>]*\|>', ' ', t)
+    t = re.sub(r'<\|[^>]*>', ' ', t)
+    t = re.sub(r'<[^>]*\|>', ' ', t)
+    # drop a leading "thought"/"analysis" label if present
+    t = re.sub(r'^\s*(thought|analysis|final)\s*[:\-]?\s*', '', t, flags=re.IGNORECASE)
+    # strip surrounding quotes/markdown fences
+    t = t.replace('```', ' ').strip().strip('"').strip()
+    # Drop editorial/meta prefaces. The UI needs narration only, not assistant explanation.
+    t = re.sub(r'^\s*(đây là|dưới đây là|sau đây là)[^:]{0,220}:\s*', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'^\s*[-–—]{2,}\s*', '', t)
+    t = re.sub(r'^\s*(lời đọc video|lời dẫn|narration|bản chuyển thể)[^\n)]*\)\s*', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'^\s*(lời đọc video|lời dẫn|narration|bản chuyển thể)[^\n:]*[:：]\s*', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'\(?\s*nhạc nền\s*:[^)\n]{0,260}\)?', ' ', t, flags=re.IGNORECASE)
+    t = re.sub(r'\(?\s*ghi chú\s*:[^)\n]{0,260}\)?', ' ', t, flags=re.IGNORECASE)
+    parts = re.split(r'\s*[-–—]{3,}\s*', t)
+    if len(parts) > 1:
+        t = parts[-1]
+    return re.sub(r'\s+', ' ', t).strip()
+
+def _words_for_length(seconds):
+    # Vietnamese TTS ~ 2.6 words/sec; clamp to a sane band
+    w = int(max(20, min(600, round(seconds * 2.6))))
+    return w
+
+def llm_rewrite(text, title, style, length, tone, provider=None, model=None, base_url=None):
+    words = _words_for_length(length)
+    style_tone = STYLE_TONE.get(style, STYLE_TONE["news"])
+    extra = (" " + tone) if tone else ""
+    prompt = (
+        "Bạn là biên tập viên video tiếng Việt. Viết lại đoạn nội dung dưới đây thành "
+        "lời đọc (narration) cho video.\\n"
+        "YÊU CẦU:\\n"
+        "- Phong cách: " + style_tone + extra + ".\\n"
+        "- Độ dài khoảng " + str(words) + " từ (cho video ~" + str(length) + " giây).\\n"
+        "- GIỮ NGUYÊN mọi số liệu, tên riêng, dữ kiện quan trọng; chỉ đổi cách diễn đạt và ngữ điệu.\\n"
+        "- KHÔNG thêm lời giới thiệu kiểu: 'Đây là bản...', 'LỜI ĐỌC VIDEO', 'Nhạc nền', 'Dưới đây là'.\\n"
+        "- KHÔNG markdown, không tiêu đề, không separator, không ghi chú sản xuất.\\n"
+        "- KHÔNG tự đổi ngôi sang 'tôi', 'chúng tôi', 'các bạn' nếu nội dung gốc không yêu cầu; ưu tiên giọng trung tính của AI World.\\n"
+        "- Chỉ trả về đúng lời đọc sẽ đưa vào video, câu đầu tiên phải là câu narration thật.\\n\\n"
+        + ("Tiêu đề: " + title + "\\n\\n" if title else "")
+        + "Nội dung gốc:\\n" + text[:4000] + "\\n\\nLời đọc viết lại:"
+    )
+    temp = 0.8 if tone or style else 0.7
+    # Route through the configured provider; fall back to local Ollama on any error.
+    if provider and provider not in ("local", "ollama", "local_ollama") and xvideo_llm:
+        try:
+            resp = xvideo_llm.complete(prompt, provider=provider, model=model or None,
+                                       json_mode=False, temperature=temp,
+                                       max_tokens=words * 3 + 200, timeout=180, base_url=base_url)
+            cleaned = _strip_llm_noise(resp or "")
+            if cleaned:
+                return cleaned
+            print("[rewrite] provider", provider, "empty, fallback local", flush=True)
+        except Exception as _pe:
+            print("[rewrite] provider", provider, "failed, fallback local:", _pe, flush=True)
+    payload = json.dumps({
+        "model": OLLAMA_MODEL, "prompt": prompt, "stream": False,
+        "options": {"temperature": temp, "num_predict": words * 3 + 200},
+    }).encode("utf-8")
+    req = urllib.request.Request(OLLAMA_URL + "/api/generate", data=payload,
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=180) as r:
+        out = json.loads(r.read())
+    return _strip_llm_noise(out.get("response", ""))
+
+@app.post("/api/rewrite")
+def api_rewrite(req: RewriteRequest):
+    if not (req.text or "").strip():
+        return {"error": "Nội dung trống"}
+    import random as _rnd
+    style = req.style
+    tone = req.tone
+    if req.random:
+        style = _rnd.choice(STYLE_LIST)
+        tone = _rnd.choice([
+            "thêm một câu hook mạnh ở đầu",
+            "nhịp nhanh, câu ngắn",
+            "ấm áp, gần gũi người xem",
+            "chuyên nghiệp, điềm tĩnh",
+            "trẻ trung, năng lượng cao",
+        ])
+    try:
+        length_seconds = _estimate_target_length(req.text, int(req.length or 0))
+        _st = load_settings()
+        _prov = req.llm_provider or _st.get("llm_provider") or "local_ollama"
+        _mdl = req.llm_model if req.llm_model is not None else _st.get("llm_model")
+        _burl = req.llm_base_url if req.llm_base_url is not None else _st.get("llm_base_url")
+        # If caller overrides provider for this run, persist it so the whole workflow stays consistent.
+        if req.llm_provider:
+            save_settings({"llm_provider": _prov, "llm_model": _mdl, "llm_base_url": _burl})
+        rewritten = llm_rewrite(req.text, req.title, style, length_seconds, tone,
+                                provider=_prov, model=_mdl or None, base_url=_burl or None)
+        if not rewritten:
+            return {"error": "Model không trả về nội dung"}
+        wc = len(rewritten.split())
+        return {"success": True, "text": rewritten, "style": style, "tone": tone,
+                "word_count": wc, "target_seconds": length_seconds}
+    except Exception as e:
+        return {"error": "Rewrite lỗi: " + str(e)}
+
+def llm_extract_clean(raw_text, title, provider=None, model=None, base_url=None):
+    """Use the configured LLM to turn messy fetched text into clean readable article body.
+    Keeps all facts/numbers/names; removes nav/boilerplate/ads/duplicate menus. Returns text or '' on failure."""
+    if not xvideo_llm or not raw_text.strip():
+        return ""
+    prompt = (
+        "Bạn là biên tập viên. Dưới đây là nội dung thô lấy từ một trang web (có thể lẫn menu, quảng cáo, "
+        "thẻ điều hướng, ký tự rác). Hãy trích ra ĐÚNG phần nội dung bài viết chính, làm sạch thành văn bản đọc được.\n"
+        "YÊU CẦU:\n"
+        "- GIỮ NGUYÊN mọi số liệu, tên riêng, dữ kiện, trích dẫn quan trọng.\n"
+        "- BỎ menu, nút chia sẻ, quảng cáo, 'đọc thêm', chân trang, nội dung trùng lặp.\n"
+        "- KHÔNG tóm tắt, KHÔNG rút gọn ý; chỉ làm sạch và giữ trọn nội dung bài.\n"
+        "- KHÔNG markdown, KHÔNG thêm lời bình, chỉ trả về văn bản bài viết.\n\n"
+        + ("Tiêu đề: " + title + "\n\n" if title else "")
+        + "Nội dung thô:\n" + raw_text[:8000] + "\n\nNội dung bài viết đã làm sạch:"
+    )
+    try:
+        out = xvideo_llm.complete(prompt, provider=provider, model=model or None, json_mode=False,
+                                  temperature=0.2, max_tokens=3000, timeout=180, base_url=base_url)
+        return _strip_llm_noise(out or "")
+    except Exception as _e:
+        print("[prefetch] llm extract failed:", _e, flush=True)
+        return ""
+
+class PrefetchReq(BaseModel):
+    url: str
+    extract_mode: Optional[str] = "local"   # local | llm
+    llm_provider: Optional[str] = None
+    llm_model: Optional[str] = None
+    llm_base_url: Optional[str] = None
+
 @app.get("/api/prefetch")
 def api_prefetch(url: str):
     try:
         t, c, e, d, cat = fetch_content(url)
-        return {"title": t[:200], "excerpt": e[:500], "content": c[:2000], "source": url, "date": d, "category": cat}
+        return {"title": t[:200], "excerpt": e[:1200], "content": c[:12000], "source": url, "date": d, "category": cat, "word_count": len(c.split())}
+    except Exception as ex:
+        return {"error": str(ex)}
+
+@app.post("/api/prefetch")
+def api_prefetch_post(req: PrefetchReq):
+    try:
+        t, c, e, d, cat = fetch_content(req.url)
+        c = c[:12000]
+        mode = req.extract_mode or "local"
+        used = "local"
+        if mode == "llm":
+            _st = load_settings()
+            prov = req.llm_provider or _st.get("llm_provider") or "local_ollama"
+            mdl = req.llm_model if req.llm_model is not None else _st.get("llm_model")
+            burl = req.llm_base_url if req.llm_base_url is not None else _st.get("llm_base_url")
+            cleaned = llm_extract_clean(c, t, provider=prov, model=mdl or None, base_url=burl or None)
+            if cleaned:
+                c = cleaned
+                used = "llm:" + prov
+        return {"title": t[:200], "excerpt": e[:1200], "content": c, "source": req.url,
+                "date": d, "category": cat, "word_count": len(c.split()), "extract_used": used}
     except Exception as ex:
         return {"error": str(ex)}
 
@@ -404,17 +802,39 @@ def get_templates(): return {"doc":"Dọc 9:16","ngang":"Ngang 16:9","vuong":"Vu
 
 @app.get("/api/voices")
 def get_voices():
-    """Danh sách giọng đọc: VieNeu (vi) + macOS say (en)"""
-    voices = [
-        {"id": "female_south", "name": "🇻🇳 Nữ Nam Bộ", "lang": "vi", "engine": "VieNeu"},
-        {"id": "female_north", "name": "🇻🇳 Nữ Bắc Bộ", "lang": "vi", "engine": "VieNeu"},
-        {"id": "male_south", "name": "🇻🇳 Nam Nam Bộ", "lang": "vi", "engine": "VieNeu"},
-        {"id": "male_north", "name": "🇻🇳 Nam Bắc Bộ", "lang": "vi", "engine": "VieNeu"},
-        {"id": "Samantha", "name": "🇺🇸 Samantha", "lang": "en", "engine": "macOS"},
-        {"id": "Karen", "name": "🇦🇺 Karen", "lang": "en", "engine": "macOS"},
-        {"id": "Daniel", "name": "🇬🇧 Daniel", "lang": "en", "engine": "macOS"},
+    """Return all voices, with user cloned/favorite voices indexed first."""
+    fallback = [
+        {"id": "female_south", "name": "🇻🇳 Nữ Nam Bộ", "lang": "vi", "engine": "VieNeu", "source":"builtin"},
+        {"id": "female_north", "name": "🇻🇳 Nữ Bắc Bộ", "lang": "vi", "engine": "VieNeu", "source":"builtin"},
+        {"id": "male_south", "name": "🇻🇳 Nam Nam Bộ", "lang": "vi", "engine": "VieNeu", "source":"builtin"},
+        {"id": "male_north", "name": "🇻🇳 Nam Bắc Bộ", "lang": "vi", "engine": "VieNeu", "source":"builtin"},
+        {"id": "Samantha", "name": "🇺🇸 Samantha", "lang": "en", "engine": "macOS", "source":"builtin"},
+        {"id": "Karen", "name": "🇦🇺 Karen", "lang": "en", "engine": "macOS", "source":"builtin"},
+        {"id": "Daniel", "name": "🇬🇧 Daniel", "lang": "en", "engine": "macOS", "source":"builtin"},
     ]
-    return {"voices": voices}
+    try:
+        with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8769/api/voices"), timeout=5) as r:
+            data = json.loads(r.read())
+        voices = data.get("voices", []) or []
+        def norm(v):
+            raw_src = (v.get("source") or "builtin").lower()
+            src = "cloned" if raw_src in ("clone", "cloned", "custom", "user") else raw_src
+            fav = bool(v.get("is_favorite"))
+            name = v.get("name") or v.get("id") or "Voice"
+            if src == "cloned" and not name.startswith("🧬"):
+                name = "🧬 " + name
+            if fav and not name.startswith("⭐"):
+                name = "⭐ " + name
+            return {"id": v.get("id"), "name": name,
+                    "lang": v.get("language") or v.get("lang") or "vi",
+                    "engine": v.get("engine") or "unknown", "source": src,
+                    "is_favorite": fav}
+        out = [norm(v) for v in voices if v.get("id")]
+        out.sort(key=lambda v: (0 if v.get("is_favorite") else 1, 0 if v.get("source") == "cloned" else 1, v.get("name","")))
+        return {"voices": out or fallback}
+    except Exception as e:
+        print(f"[voices] voice library unavailable: {e}", flush=True)
+        return {"voices": fallback}
 
 @app.get("/api/preview-voice")
 def preview_voice(voice: str, text: str = "Xin chào, đây là giọng đọc của X Video Studio", language: str = "vi"):
@@ -562,21 +982,28 @@ def _vld(voice_id: str):
 
 @app.post("/api/clone-voice")
 async def _clone_voice_proxy(
-    name: str,
     file: UploadFile = File(...),
-    engine: str = "vieneu",
-    language: str = "vi",
-    gender: str = "unknown",
+    name: str = Form(...),
+    engine: str = Form("vieneu"),
+    language: str = Form("vi"),
+    gender: str = Form("unknown"),
+    region: str = Form(None),
+    lang: str = Form(None),
+    age: str = Form(None),
+    style_tag: str = Form(None),
+    ref_text: str = Form(""),
 ):
     # Proxy to the voice library's clone endpoint
     import httpx
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
         # Prepare the form data
         files = {"file": (file.filename, await file.read(), file.content_type)}
-        data = {"name": name, "engine": engine, "language": language, "gender": gender}
+        # UI (index.html) sends "lang" instead of "language" — normalize
+        eff_language = lang or language or "vi"
+        data = {"name": name, "engine": engine, "language": eff_language, "gender": gender, "ref_text": ref_text}
         try:
             resp = await client.post(
-                "http://127.0.0.1:8769/api/voice-library/voices/clone",
+                "http://127.0.0.1:8769/api/voices/clone",
                 files=files,
                 data=data,
             )
@@ -600,6 +1027,371 @@ def _try_tts(data: dict):
         return Response(content=data, media_type="audio/mp3")
     except Exception as e:
         raise __import__("fastapi").HTTPException(503, f"TTS engine '{engine}' failed: {str(e)}")
+
+# ---- Storyboard Management ----
+class SceneReq(BaseModel):
+    job_id: str
+    scene_id: str = ""
+    text: str = None
+    image: str = None
+    layout: str = None
+    duration: float = None
+    visual_type: str = None
+    motion_preset: str = None
+    asset_policy: str = None
+    headline: str = None
+    template_id: str = None
+    aspect: str = "9:16"
+    voice: str = None
+    after_id: str = ""
+    ordered_ids: list = []
+
+@app.get("/api/storyboard/{job_id}")
+def storyboard_get(job_id: str):
+    if not xvideo_storyboard:
+        return {"error": "storyboard module unavailable"}
+    jd = PROJECT_DIR / job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb:
+        return {"error": "Storyboard chua san sang"}
+    return xvideo_storyboard.public_view(sb)
+
+@app.post("/api/storyboard/scene/add")
+def storyboard_scene_add(req: SceneReq):
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    sid = xvideo_storyboard.add_scene(sb, text=req.text or "Phan canh moi", image=req.image, after_id=req.after_id)
+    xvideo_storyboard.save(jd, sb)
+    return {"success": True, "id": sid}
+
+@app.post("/api/storyboard/scene/update")
+def storyboard_scene_update(req: SceneReq):
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    ok = xvideo_storyboard.update_scene(sb, req.scene_id, text=req.text, image=req.image,
+                                         layout=req.layout, duration=req.duration,
+                                         visual_type=req.visual_type, motion_preset=req.motion_preset,
+                                         asset_policy=req.asset_policy, headline=req.headline)
+    if req.template_id is not None and ok:
+        for _sc in sb.get("scenes", []):
+            if _sc.get("id") == req.scene_id:
+                _sc["template_id"] = req.template_id
+                break
+    xvideo_storyboard.save(jd, sb)
+    return {"success": ok}
+
+
+@app.post("/api/storyboard/scene/sync-settings")
+def storyboard_scene_sync_settings(req: SceneReq):
+    """Copy visual/render settings from one approved scene to all remaining scenes.
+    Does not copy story content, headline, duration, or image.
+    """
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    scenes = sb.get("scenes", [])
+    src = next((s for s in scenes if s.get("id") == req.scene_id), None)
+    if not src: return {"error": "source scene not found"}
+    # Prefer values explicitly submitted from the current UI controls. This prevents
+    # a sync click from reloading stale/default-normalized values from storyboard.
+    keys = ["visual_type", "motion_preset", "asset_policy", "layout", "template_id"]
+    req_vals = {"visual_type": req.visual_type, "motion_preset": req.motion_preset,
+                "asset_policy": req.asset_policy, "layout": req.layout, "template_id": req.template_id}
+    copied = {}
+    for k in keys:
+        rv = req_vals.get(k)
+        sv = src.get(k)
+        # UI payload can be stale/defaulted to "random" while the source scene already
+        # has a concrete approved setting. Sync must never downgrade concrete choices
+        # to random. This protection applies to template + visual/motion/asset/layout.
+        if rv == "random" and sv and sv != "random":
+            copied[k] = sv
+        elif rv not in (None, ""):
+            copied[k] = rv
+        elif sv is not None:
+            copied[k] = sv
+    for k, v in copied.items():
+        src[k] = v
+    n = 0
+    for sc in scenes:
+        if sc.get("id") == req.scene_id:
+            continue
+        for k, v in copied.items():
+            sc[k] = v
+        # invalidate render preview because settings changed; keep article image/content untouched
+        if sc.get("preview"):
+            sc["preview"] = {"status": "pending_sync", "engine": sc.get("preview", {}).get("engine", "html-video")}
+        n += 1
+    sb.setdefault("style_lock", {})
+    sb["style_lock"].update({"source_scene_id": req.scene_id, "settings": copied, "updated_at": datetime.now().isoformat()})
+    xvideo_storyboard.save(jd, sb)
+    return {"success": True, "synced": n, "settings": copied}
+
+@app.post("/api/storyboard/scene/delete")
+def storyboard_scene_delete(req: SceneReq):
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    ok = xvideo_storyboard.delete_scene(sb, req.scene_id)
+    xvideo_storyboard.save(jd, sb)
+    return {"success": ok}
+
+@app.post("/api/storyboard/scene/reorder")
+def storyboard_scene_reorder(req: SceneReq):
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    ok = xvideo_storyboard.reorder_scenes(sb, req.ordered_ids)
+    xvideo_storyboard.save(jd, sb)
+    return {"success": ok}
+
+@app.post("/api/storyboard/scene/regenerate")
+def storyboard_scene_regen(req: SceneReq):
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb: return {"error": "no storyboard"}
+    new_img = xvideo_storyboard.regenerate_scene_image(sb, req.scene_id, jd)
+    xvideo_storyboard.save(jd, sb)
+    return {"success": bool(new_img), "image": new_img}
+
+@app.post("/api/storyboard/scene/preview")
+def storyboard_scene_preview(req: SceneReq):
+    """Render one storyboard scene to a PNG preview so user can approve scene-by-scene."""
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb:
+        return {"error": "no storyboard"}
+    scene = next((s for s in sb.get("scenes", []) if s.get("id") == req.scene_id), None)
+    if not scene:
+        return {"error": "scene not found"}
+    try:
+        import copy
+        single = copy.deepcopy(sb)
+        one = copy.deepcopy(scene)
+        one["start"] = 0
+        one["duration"] = max(4, float(one.get("duration") or 4))
+        single["scenes"] = [one]
+        single["total_duration"] = one["duration"]
+        try:
+            import xvideo_scene_analyzer, xvideo_scene_templates
+            one = xvideo_scene_analyzer.enrich_scene(one, one.get("order", 0))
+            html = xvideo_scene_templates.render_scene_html(
+                one, aspect=single.get("aspect", "doc"), title=single.get("title", ""),
+                aspect_map=ASPECT_MAP, res_map=RES_MAP,
+                resolution=single.get("resolution", "hd"), idx=one.get("order", 0))
+        except Exception as e:
+            print("[storyboard] template preview fallback:", e, flush=True)
+            html = xvideo_storyboard.render_html(single, "voice.mp3", "bgm.mp3",
+                                                 datetime.now().strftime('%Y-%m-%d'),
+                                                 ASPECT_MAP, RES_MAP)
+        html_path = jd / f"preview_{req.scene_id}.html"
+        html_path.write_text(html, encoding="utf-8")
+        asset_dir = jd / "assets"; asset_dir.mkdir(exist_ok=True)
+        out = asset_dir / f"preview_{req.scene_id}.png"
+        chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        # viewport size roughly matches selected aspect; render fast static first frame
+        ar = ASPECT_MAP.get(single.get("aspect", "doc"), (9,16))
+        vh = 960; vw = int(vh * ar[0] / ar[1] / 2) * 2
+        cmd = [chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+               f"--window-size={vw},{vh}", f"--screenshot={out}", html_path.as_uri()]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+        if not out.exists():
+            return {"error": "preview render failed: " + (r.stderr or r.stdout)[-300:]}
+        scene["preview"] = {
+            "png": f"assets/{out.name}",
+            "mp4": (scene.get("preview") or {}).get("mp4"),
+            "status": "ready",
+            "html": html_path.name,
+        }
+        try:
+            xvideo_storyboard.save(jd, sb)
+        except Exception as e:
+            print("[storyboard] preview save failed:", e, flush=True)
+        return {"success": True, "preview": f"/api/storyboard/{req.job_id}/asset/{out.name}?t={int(time.time())}", "scene": xvideo_storyboard.public_view({**sb, "scenes": [scene]}).get("scenes", [scene])[0]}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/storyboard/{job_id}/render")
+def storyboard_render_now(job_id: str):
+    jd = PROJECT_DIR / job_id
+    sb = xvideo_storyboard.load(jd)
+    if not sb:
+        return {"error": "Storyboard chua san sang"}
+    _job_update(job_id, status="rendering", progress=65)
+    threading.Thread(target=_job_render, args=(job_id,), daemon=True).start()
+    return {"success": True, "status": "rendering"}
+
+@app.get("/api/hv/templates")
+def hv_templates(aspect: str = None):
+    if not xvideo_hv:
+        return {"error": "html-video bridge unavailable"}
+    return {"templates": xvideo_hv.list_templates(aspect=aspect)}
+
+@app.post("/api/hv/scene/render")
+def hv_scene_render(req: SceneReq):
+    """Render one storyboard scene to MP4 via the html-video engine.
+    template_id optional; if missing or 'random', a template is auto-picked."""
+    if not xvideo_hv:
+        return {"error": "html-video bridge unavailable"}
+    jd = PROJECT_DIR / req.job_id
+    sb = xvideo_storyboard.load(jd) if xvideo_storyboard else None
+    if not sb:
+        return {"error": "no storyboard"}
+    scene = next((sc for sc in sb.get("scenes", []) if sc.get("id") == req.scene_id), None)
+    if not scene:
+        return {"error": "scene not found"}
+    aspect = req.aspect or "9:16"
+    tid = req.template_id or scene.get("template_id")
+    if not tid or tid == "random":
+        tid = xvideo_hv.random_template(aspect=aspect)
+    res = xvideo_hv.render_scene(scene, tid, aspect=aspect)
+    if not res.get("success"):
+        return {"error": res.get("error", "render failed")}
+    # copy/mux mp4 into job assets so the UI can stream it. If a voice is supplied,
+    # generate per-scene TTS and mux it with the visual scene.
+    import shutil
+    asset_dir = jd / "assets"; asset_dir.mkdir(parents=True, exist_ok=True)
+    fn = "scene_%s.mp4" % req.scene_id
+    dst = asset_dir / fn
+    voice_used = None
+    try:
+        if req.voice:
+            voice_text = scene.get("body") or scene.get("script") or scene.get("text") or scene.get("summary") or scene.get("headline") or ""
+            voice_mp3 = asset_dir / ("scene_%s_voice.mp3" % req.scene_id)
+            try:
+                generate_voice(voice_text, req.voice, voice_mp3, "vi")
+                mux_tmp = asset_dir / ("scene_%s_mux.mp4" % req.scene_id)
+                cmd = ['/opt/homebrew/bin/ffmpeg','-y','-i',res["mp4"],'-i',str(voice_mp3),'-c:v','copy','-c:a','aac','-shortest',str(mux_tmp)]
+                mr = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+                if mr.returncode == 0 and mux_tmp.exists():
+                    shutil.move(str(mux_tmp), str(dst))
+                    voice_used = req.voice
+                else:
+                    shutil.copyfile(res["mp4"], dst)
+            except Exception as e:
+                print("[hv] scene voice mux failed:", e, flush=True)
+                shutil.copyfile(res["mp4"], dst)
+        else:
+            shutil.copyfile(res["mp4"], dst)
+    except Exception as e:
+        return {"error": "copy/mux mp4 failed: %s" % e}
+    scene["template_id"] = tid
+    scene["preview"] = {"png": (scene.get("preview") or {}).get("png"),
+                         "mp4": "assets/" + fn, "status": "ready", "engine": "html-video"}
+    try:
+        xvideo_storyboard.save(jd, sb)
+    except Exception as e:
+        print("[hv] save failed:", e, flush=True)
+    return {"success": True, "template_id": tid, "aspect": res.get("aspect", aspect),
+            "mp4": "/api/storyboard/%s/asset/%s?t=%d" % (req.job_id, fn, int(time.time())), "voice": voice_used}
+
+@app.get("/api/storyboard/{job_id}/asset/{filename}")
+def storyboard_asset(job_id: str, filename: str):
+    jd = PROJECT_DIR / job_id / "assets"
+    p = jd / filename
+    if not p.exists() or ".." in filename:
+        return Response(status_code=404)
+    fl = filename.lower()
+    mt = "image/jpeg" if fl.endswith((".jpg",".jpeg")) else "image/png" if fl.endswith(".png") else "image/webp" if fl.endswith(".webp") else "video/mp4" if fl.endswith(".mp4") else "video/webm" if fl.endswith(".webm") else "application/octet-stream"
+    return Response(content=p.read_bytes(), media_type=mt)
+
+
+# ---- API Key Management ----
+class ApiKeyReq(BaseModel):
+    provider: str
+    key: str = ""
+    label: str = ""
+    id: str = ""
+
+@app.get("/api/keys")
+def api_keys_list(provider: str = None):
+    if not xvideo_apikeys:
+        return {"error": "key manager unavailable"}
+    return {"providers": xvideo_apikeys.list_keys(provider)}
+
+@app.post("/api/keys/add")
+def api_keys_add(req: ApiKeyReq):
+    if not xvideo_apikeys:
+        return {"error": "key manager unavailable"}
+    if not req.key.strip():
+        return {"error": "Key trống"}
+    kid = xvideo_apikeys.add_key(req.provider, req.key, req.label)
+    return {"success": True, "id": kid}
+
+@app.post("/api/keys/update")
+def api_keys_update(req: ApiKeyReq):
+    if not xvideo_apikeys:
+        return {"error": "key manager unavailable"}
+    ok = xvideo_apikeys.update_key(req.provider, req.id, req.key or None, req.label or None)
+    return {"success": ok}
+
+@app.post("/api/keys/delete")
+def api_keys_delete(req: ApiKeyReq):
+    if not xvideo_apikeys:
+        return {"error": "key manager unavailable"}
+    ok = xvideo_apikeys.delete_key(req.provider, req.id)
+    return {"success": ok}
+
+class SettingsReq(BaseModel):
+    llm_provider: Optional[str] = None
+    llm_model: Optional[str] = None
+    llm_base_url: Optional[str] = None
+
+@app.get("/api/settings")
+def api_settings_get():
+    return load_settings()
+
+@app.post("/api/settings")
+def api_settings_set(req: SettingsReq):
+    return save_settings({"llm_provider": req.llm_provider, "llm_model": req.llm_model, "llm_base_url": req.llm_base_url})
+
+@app.get("/api/llm/providers")
+def api_llm_providers():
+    return {"providers": [
+        {"id": "local_ollama", "label": "Local (Ollama)", "needs_key": False, "needs_base_url": False},
+        {"id": "gemini", "label": "Google Gemini", "needs_key": True, "needs_base_url": False},
+        {"id": "openai", "label": "OpenAI", "needs_key": True, "needs_base_url": False},
+        {"id": "openai_compatible", "label": "OpenAI-compatible proxy", "needs_key": True, "needs_base_url": True},
+        {"id": "deepseek", "label": "DeepSeek", "needs_key": True, "needs_base_url": False},
+        {"id": "9router", "label": "9Router", "needs_key": True, "needs_base_url": True},
+    ]}
+
+@app.post("/api/llm/test")
+def api_llm_test(req: SettingsReq):
+    """Live test the currently-selected (or provided) provider with a tiny prompt."""
+    st = load_settings()
+    provider = req.llm_provider or st.get("llm_provider") or "local_ollama"
+    model = req.llm_model if req.llm_model is not None else st.get("llm_model")
+    base_url = req.llm_base_url if req.llm_base_url is not None else st.get("llm_base_url")
+    if not xvideo_llm:
+        return {"success": False, "detail": "LLM adapter unavailable"}
+    try:
+        out = xvideo_llm.complete('Tra loi JSON {"ok":true}', provider=provider, model=model or None,
+                                  json_mode=True, max_tokens=60, timeout=60, base_url=base_url or None)
+        ok = '"ok"' in (out or "") or "ok" in (out or "").lower()
+        return {"success": bool(ok), "detail": (out or "")[:160]}
+    except Exception as e:
+        return {"success": False, "detail": str(e)[:160]}
+
+@app.post("/api/keys/test")
+def api_keys_test(req: ApiKeyReq):
+    if not xvideo_apikeys:
+        return {"error": "key manager unavailable"}
+    if req.id:
+        ok, detail = xvideo_apikeys.test_and_update(req.provider, req.id)
+    elif req.key:
+        ok, detail = xvideo_apikeys.test_key(req.provider, req.key)
+    else:
+        return {"error": "Cần id hoặc key"}
+    return {"success": ok, "detail": detail}
+
+@app.get("/", response_class=HTMLResponse)
+def _index_nocache():
+    p = FRONTEND_DIR / "index.html"
+    html = p.read_text(encoding="utf-8")
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache"})
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="static")
 

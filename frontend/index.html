@@ -43,13 +43,15 @@
       background: rgba(255,255,255,0.05);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid transparent;
-      border-image: linear-gradient(to bottom, rgba(255,255,255,0.2), rgba(0,188,212,0.3)) 1;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px;
+      overflow: hidden;
     }
     .glass-card-inner-glow { position: relative; }
+    .glass-card-inner-glow{ overflow:hidden; border-radius:18px; }
     .glass-card-inner-glow::after {
       content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
       z-index: 10; pointer-events: none;
     }
@@ -140,507 +142,714 @@
     .tts-dots span:nth-child(2) { animation-delay: 0.2s; }
     .tts-dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes tts-dot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.1); } }
+.step-dot{color:#bbc9cc;font-weight:500;transition:color .2s}
+
+    /* ===== aiworld-studio design language (Option A) ===== */
+    :root{
+      --aw-accent:#9f8cff; --aw-accent2:#67ddff; --aw-pink:#ff8da1;
+      --aw-gold:#ffcf66; --aw-green:#5ee3a1; --aw-glass-line:rgba(255,255,255,0.22);
+      --aw-radius:22px;
+    }
+    body{
+      background:
+        radial-gradient(circle at 12% 14%, rgba(94,208,255,0.42), transparent 30%),
+        radial-gradient(circle at 84% 8%, rgba(159,140,255,0.46), transparent 32%),
+        radial-gradient(circle at 80% 84%, rgba(255,141,161,0.30), transparent 34%),
+        radial-gradient(circle at 18% 92%, rgba(255,207,102,0.18), transparent 28%),
+        linear-gradient(145deg, #0b1020 0%, #141a2e 38%, #090b12 70%, #17111f 100%) !important;
+      background-attachment: fixed !important;
+    }
+    /* hide the old single-tone aurora orbs; gradient replaces them */
+    .aurora-orb-1,.aurora-orb-2{ display:none !important; }
+    /* Sidebar: glassy, rounded, wider (268px) like the reference */
+    nav[aria-label="Sidebar"]{
+      width:268px !important; margin:14px 0 14px 14px; height:calc(100vh - 28px) !important;
+      border:1px solid var(--aw-glass-line) !important; border-radius:26px !important;
+      background:linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05)) !important;
+      -webkit-backdrop-filter:blur(22px) saturate(170%); backdrop-filter:blur(22px) saturate(170%);
+      box-shadow:0 20px 54px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.26);
+    }
+    /* active nav item pill in accent gradient */
+    nav[aria-label="Sidebar"] a.aw-active{
+      background:linear-gradient(135deg, rgba(159,140,255,0.20), rgba(103,221,255,0.12)) !important;
+      border-radius:14px !important; border-right:none !important;
+      color:#fff !important;
+    }
+    /* Main glass surface */
+    .aw-main-surface{
+      margin:14px 14px 14px 0; border-radius:26px;
+      border:1px solid var(--aw-glass-line);
+      background:linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%);
+      box-shadow:0 20px 54px rgba(0,0,0,0.42);
+      overflow:hidden;
+    }
+    /* topbar search box */
+    .aw-search{ display:flex; align-items:center; gap:8px; padding:7px 14px;
+      background:rgba(255,255,255,0.06); border:1px solid var(--aw-glass-line);
+      border-radius:14px; min-width:240px; color:var(--aw-accent2); }
+    .aw-search input{ background:transparent; border:none; outline:none; color:#e3e1e9;
+      font-size:12px; width:100%; }
+    .aw-search input::placeholder{ color:#869396; }
+    .aw-avatar{ width:34px; height:34px; border-radius:12px; display:grid; place-items:center;
+      font-size:12px; font-weight:800; color:#0b1020;
+      background:linear-gradient(135deg, var(--aw-accent), var(--aw-accent2)); }
+    /* accent the active step + primary buttons toward the violet/blue mix */
+    .step-dot[data-on="1"]{ color:var(--aw-accent2) !important; font-weight:800; }
+
+
+    /* ===== Soften corners globally (no square corners) ===== */
+    .rounded{ border-radius:12px !important; }
+    .rounded-lg{ border-radius:14px !important; }
+    .rounded-xl{ border-radius:18px !important; }
+    .glass-panel{ border-radius:18px; }
+    .glass-input{ border-radius:12px !important; }
+    select.glass-input{ border-radius:12px !important; }
+    .player-placeholder, video{ border-radius:18px !important; }
+    .alert, .progress-box, .input-mode-btn{ border-radius:12px !important; }
+    .style-card{ border-radius:14px; }
+    button{ border-radius:12px; }
+    /* keep pills fully round, keep tiny dots/circles as-is */
+    .rounded-full{ border-radius:9999px !important; }
+
 </style>
 </head>
 <body class="antialiased min-h-screen flex selection:bg-primary selection:text-on-primary">
 <div class="aurora-orb-1"></div>
 <div class="aurora-orb-2"></div>
-<audio id="pa" style="display:none"></audio>
 
-<!-- TTS Loading Overlay -->
-<div id="ttsOverlay">
+<!-- TTS warmup overlay -->
+<div id="ttsOverlay" class="hidden">
   <div class="tts-spinner"></div>
-  <div class="tts-status-text">🎙️ Đang khởi động AI Voice</div>
-  <div class="tts-detail-text" id="ttsDetailText">Đang tải model VieNeu TTS...<br>Vui lòng đợi trong giây lát</div>
+  <div class="tts-status-text" id="ttsStatusText">Đang khởi động giọng đọc...</div>
+  <div class="tts-detail-text" id="ttsDetailText">VieNeu TTS đang nạp model, lần đầu mất ~30 giây.</div>
   <div class="tts-dots"><span></span><span></span><span></span></div>
-  <div style="margin-top:8px;font-size:11px;color:#869396">X-Video Studio — AI World</div>
 </div>
 
-<!-- SideNavBar -->
-<nav aria-label="Sidebar Navigation" class="hidden md:flex flex-col h-screen w-64 border-r border-white/20 bg-white/5 dark:bg-white/5 backdrop-blur-[24px] py-md px-sm fixed left-0 top-0 z-40">
-<div class="mb-lg px-xs">
-<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight flex items-center gap-sm"><img src="/static/logo-xvideo.png" class="w-8 h-8 rounded-lg object-contain" alt="X">X-Video</h1>
-<p class="font-label-md text-label-md text-on-surface-variant mt-xs">Automation Suite</p>
-</div>
-<ul class="flex flex-col gap-xs flex-1">
-<li>
-<a class="flex items-center gap-sm px-sm py-sm rounded text-primary font-bold border-r-2 border-primary hover:bg-white/10 transition-colors duration-200" href="#">
-🎬<span class="font-label-md text-label-md">Tạo Video</span>
-</a>
-</li>
-<li>
-<a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors duration-200" href="#" onclick="toggleHelp();return false">
-📖<span class="font-label-md text-label-md">Hướng dẫn</span>
-</a>
-</li>
-<li class="side-nav-item"><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors duration-200" href="#" onclick="window.location.href='/voice-library.html'">🎤<span class="font-label-md text-label-md">Voice Library</span></a></li>
-</ul>
-<div class="mt-auto">
-<div class="mt-sm flex items-center gap-sm px-sm py-sm border-t border-white/10">
-<div class="flex flex-col gap-1">
-<!-- FIX: version fetched từ /healthz thay vì hardcode -->
-<span class="font-code-sm text-code-sm text-on-surface-variant text-[10px]" id="appVersion">v...</span>
-<div class="flex gap-1"><span class="px-2 py-0.5 rounded-full text-[9px] border border-white/10 text-on-surface-variant">AI World</span><span class="px-2 py-0.5 rounded-full text-[9px] bg-primary/10 border border-primary/30 text-primary">GPU</span></div>
-</div>
-</div>
-</div>
+<!-- Sidebar -->
+<nav aria-label="Sidebar" class="hidden md:flex flex-col h-screen w-64 border-r border-white/20 bg-white/5 flex-shrink-0">
+  <div class="p-md border-b border-white/10">
+    <h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight flex items-center gap-sm"><img src="/static/logo-xvideo.png" class="w-8 h-8 rounded-lg object-contain" alt="X">X-Video</h1>
+    <p class="font-label-md text-label-md text-on-surface-variant mt-xs">AI World Studio</p>
+  </div>
+  <ul class="flex-1 p-sm flex flex-col gap-1">
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded aw-active font-bold" href="#" onclick="return false">🎬<span class="font-label-md text-label-md">Tạo Video</span></a></li>
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors" href="/voice-library.html">🎤<span class="font-label-md text-label-md">Thư viện giọng</span></a></li>
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors" href="#" onclick="goApiKeys();return false">🔑<span class="font-label-md text-label-md">API Keys</span></a></li>
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors" href="#" onclick="toggleHelp();return false">❓<span class="font-label-md text-label-md">Trợ giúp</span></a></li>
+  </ul>
+  <div class="p-sm border-t border-white/10 flex items-center justify-between">
+    <span class="text-code-sm text-[10px] text-on-surface-variant" id="appVersion">v1.26.0</span>
+    <div class="flex gap-1"><span class="px-2 py-0.5 rounded-full text-[9px] bg-primary/10 border border-primary/30 text-primary">GPU</span></div>
+  </div>
 </nav>
 
-<!-- Main Content Area -->
-<div class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen relative z-10">
-
-<!-- TopNavBar -->
-<header class="flex justify-between items-center w-full px-md py-sm h-16 border-b border-white/20 bg-white/5 dark:bg-white/5 backdrop-blur-[24px] sticky top-0 z-30 shadow-none">
-<div class="flex items-center gap-md">
-<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors">☰</button>
-<div class="flex gap-2">
-  <span class="px-3 py-1.5 rounded text-[12px] font-semibold text-on-surface-variant opacity-60">📰</span>
-  <button onclick="switchTab(this,'voiceTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">🎤 Giọng</button>
-  <button onclick="switchTab(this,'musicTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">🎵 Nhạc</button>
-  <button onclick="switchTab(this,'cfgTab')" class="tab-btn px-3 py-1.5 rounded text-[12px] font-semibold border border-transparent text-on-surface-variant hover:bg-white/10 transition-all">⚙️ Cấu hình</button>
-</div>
-</div>
-<div class="flex items-center gap-md">
-<button onclick="toggleHelp()" class="text-on-surface-variant hover:text-primary transition-colors text-sm">❓</button>
-</div>
-</header>
-
-<!-- Canvas -->
-<main class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto">
-<!-- Hero / Input Section -->
-<section class="max-w-4xl mx-auto mt-lg mb-xl text-center">
-<h2 class="font-display-lg-mobile md:font-display-lg text-on-surface mb-sm">Generate Your Vision</h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant mb-lg max-w-2xl mx-auto">Paste a URL or write a script to instantly generate a high-quality video.</p>
-
-<!-- FIX: input mode toggle URL / Script -->
-<div class="flex justify-center gap-2 mb-3">
-  <button class="input-mode-btn active" id="modeUrl" onclick="setInputMode('url')">🔗 URL</button>
-  <button class="input-mode-btn" id="modeText" onclick="setInputMode('text')">📝 Script</button>
-</div>
-
-<div class="relative max-w-3xl mx-auto">
-  <div class="glass-panel rounded-2xl p-3 glass-card-inner-glow">
-    <!-- URL mode -->
-    <div id="inputUrl" class="flex items-center">
-      <span class="text-primary ml-sm mr-xs text-lg">🔗</span>
-      <input class="flex-1 bg-transparent border-none text-on-surface placeholder:text-on-surface-variant focus:ring-0 font-body-md text-body-md py-3 px-2" placeholder="Paste article URL here..." type="url" id="url"/>
+<!-- Main -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden aw-main-surface">
+  <header class="flex justify-between items-center px-md h-14 border-b border-white/10 flex-shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="text-[13px] font-bold text-on-surface">Trình tạo video</span>
+      <span class="text-[11px] text-on-surface-variant" id="stepHint">Bước 1/4 · Nguồn nội dung</span>
     </div>
-    <!-- FIX: text/script mode (hidden by default) -->
-    <div id="inputText" style="display:none" class="px-sm">
-      <textarea id="scriptText" class="glass-input" rows="4" placeholder="Nhập nội dung script tại đây..."></textarea>
-    </div>
-    <div class="flex justify-end mt-2 px-1">
-      <button onclick="genVideo()" class="btn-shine bg-primary text-black font-label-md text-label-md font-bold py-3 px-8 rounded-full neon-glow-primary hover:bg-primary-fixed transition-colors flex items-center gap-xs" id="sb">
-        ✨ Tạo Video
-      </button>
-    </div>
-  </div>
-
-  <!-- FIX: advancedControls luôn hiển thị (không còn display:none) -->
-  <div id="advancedControls" class="mt-md">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
-      <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
-        <h4 class="font-label-md text-label-md text-primary mb-sm">📝 Hook</h4>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Tin nóng:'">🔥 Tin nóng</button>
-          <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Bạn có biết...'">🤔 Bạn biết</button>
-          <button class="px-3 py-1 rounded-full text-[11px] border border-white/10 hover:bg-white/10 transition-all text-on-surface-variant" onclick="document.getElementById('hook').value='Đột phá mới:'">🚀 Đột phá</button>
-        </div>
-        <input type="text" id="hook" class="glass-input" value="Tin nóng:" style="font-size:12px">
+    <div class="flex items-center gap-3">
+      <div class="aw-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input placeholder="Tìm bài viết, link, hoặc tác vụ..." id="awSearch">
       </div>
-      <div class="glass-panel rounded-xl p-md glass-card-inner-glow flex flex-col">
-        <h4 class="font-label-md text-label-md text-primary mb-sm">📢 CTA</h4>
-        <input type="text" id="cta" class="glass-input" value="Theo dõi AI World để cập nhật tin mới!">
-      </div>
+      <button onclick="showHistory()" class="text-[11px] px-3 py-1 rounded-full border border-white/15 text-on-surface-variant hover:bg-white/10">🕘 Lịch sử</button>
+      <button onclick="exportProgress()" class="text-[11px] px-3 py-1 rounded-full border border-white/15 text-on-surface-variant hover:bg-white/10">💾 Lưu file</button>
+      <button onclick="resetWizard()" class="text-[11px] px-3 py-1 rounded-full border border-white/15 text-on-surface-variant hover:bg-white/10">↺ Làm lại</button>
+      <button class="aw-avatar" onclick="goApiKeys()" title="API Keys">AW</button>
     </div>
+  </header>
+
+  <!-- Step indicator -->
+  <div class="flex items-center justify-center gap-1 py-3 border-b border-white/10 flex-shrink-0 text-[11px]">
+    <span class="step-dot" data-s="1">1 · Nguồn</span>
+    <span class="text-on-surface-variant">›</span>
+    <span class="step-dot" data-s="2">2 · Duyệt nội dung</span>
+    <span class="text-on-surface-variant">›</span>
+    <span class="step-dot" data-s="3">3 · Cấu hình</span>
+    <span class="text-on-surface-variant">›</span>
+    <span class="step-dot" data-s="4">4 · Phân cảnh & Ghép</span>
   </div>
 
-  <!-- Tab Contents -->
-<div id="voiceTabPanel" class="tab-panel mt-md" style="display:none"><iframe src="/voice-library.html" style="width:100%;height:100%;border:none;display:block;"></iframe></div>
-
-  <div id="musicTabPanel" class="tab-panel mt-md" style="display:none">
-    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
-      <h3 class="font-label-md text-label-md text-primary mb-sm">🎵 Nhạc nền</h3>
-      <div class="select-list" id="ml"></div>
-      <details class="mt-sm"><summary>Copy file vào bgm_audio/ trên Mac mini</summary>
-        <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">App tự động liệt kê file MP3/WAV/M4A từ <code class="bg-black/30 px-1.5 py-0.5 rounded text-primary">bgm_audio/</code>.</p>
-      </details>
-    </div>
-  </div>
-
-  <div id="cfgTabPanel" class="tab-panel mt-md" style="display:none">
-    <div class="glass-panel rounded-xl p-md glass-card-inner-glow text-left">
-      <h3 class="font-label-md text-label-md text-primary mb-sm">⚙️ Cấu hình</h3>
-      <div class="grid grid-cols-3 gap-4 mb-4">
-        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Style</label>
-          <select id="style" class="glass-input">
-            <option value="news">Bản tin</option>
-            <option value="reportage">Phóng sự</option>
-            <option value="analysis">Phân tích</option>
-            <option value="story">Kể chuyện</option>
-            <option value="hot">Tin nóng</option>
-          </select>
-        </div>
-        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Tốc độ</label><select id="speed" class="glass-input"><option value="slow">Chậm</option><option value="normal" selected>Vừa</option><option value="fast">Nhanh</option></select></div>
-        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Khổ</label><select id="aspect" class="glass-input"><option value="doc">9:16</option><option value="ngang">16:9</option><option value="vuong">1:1</option></select></div>
-      </div>
-      <div class="grid grid-cols-3 gap-4">
-        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Độ phân giải</label><select id="res" class="glass-input"><option value="hd">HD</option><option value="fhd" selected>FHD</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
-        <div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Output Dir</label><input type="text" id="outdir2" class="glass-input" value="output/" style="font-size:11px"></div>
-        <div class="flex items-end"><button onclick="toggleLang()" id="langBtn" class="glass-input text-center font-bold cursor-pointer hover:border-primary transition-all" style="height:33px">VI</button></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Progress -->
-  <div class="progress-box" id="prc">
-    <div class="progress-bar"><div class="progress-fill" id="prf" style="width:0"></div></div>
-    <div class="progress-text" id="prt">Starting...</div>
-  </div>
-
-  <!-- Alerts -->
-  <div class="alert alert-error" id="err"></div>
-  <div class="alert alert-ok" id="ok"></div>
+  <main class="flex-1 overflow-y-auto p-md">
+    <div class="max-w-3xl mx-auto" id="wizardRoot"></div>
+  </main>
 </div>
-</section>
-
-<!-- Video Styles Section — FIX: click kết nối vào #style select -->
-<section class="max-w-6xl mx-auto mb-xl">
-<div class="flex items-center justify-between mb-md">
-<h3 class="font-headline-md text-headline-md text-on-surface">Video Styles</h3>
-<span class="font-label-md text-label-md text-primary flex items-center gap-xs">5 styles <span class="text-sm">→</span></span>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-md" id="styleCards">
-  <div class="style-card glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300 active" data-style="news" onclick="selectStyle(this,'news')">
-    <div class="h-24 bg-surface-container flex items-center justify-center text-4xl">📰</div>
-    <span class="block py-2 pl-3 font-label-md text-label-md text-on-surface font-semibold text-sm">Bản Tin</span>
-  </div>
-  <div class="style-card glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300" data-style="reportage" onclick="selectStyle(this,'reportage')">
-    <div class="h-24 bg-surface-container flex items-center justify-center text-4xl">🎬</div>
-    <span class="block py-2 pl-3 font-label-md text-label-md text-on-surface font-semibold text-sm">Phóng Sự</span>
-  </div>
-  <div class="style-card glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300" data-style="analysis" onclick="selectStyle(this,'analysis')">
-    <div class="h-24 bg-surface-container flex items-center justify-center text-4xl">📊</div>
-    <span class="block py-2 pl-3 font-label-md text-label-md text-on-surface font-semibold text-sm">Phân Tích</span>
-  </div>
-  <div class="style-card glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300" data-style="story" onclick="selectStyle(this,'story')">
-    <div class="h-24 bg-surface-container flex items-center justify-center text-4xl">📖</div>
-    <span class="block py-2 pl-3 font-label-md text-label-md text-on-surface font-semibold text-sm">Kể Chuyện</span>
-  </div>
-  <div class="style-card glass-panel rounded-xl overflow-hidden glass-card-inner-glow cursor-pointer hover:-translate-y-1 transition-transform duration-300" data-style="hot" onclick="selectStyle(this,'hot')">
-    <div class="h-24 bg-surface-container flex items-center justify-center text-4xl">🔥</div>
-    <span class="block py-2 pl-3 font-label-md text-label-md text-on-surface font-semibold text-sm">Tin Nóng</span>
-  </div>
-</div>
-</section>
-
-<!-- Recent Projects Section -->
-<section class="max-w-6xl mx-auto mb-xl">
-<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Recent Projects</h3>
-<div class="flex flex-col gap-sm" id="recentProjects">
-  <div class="glass-panel rounded-lg p-sm glass-card-inner-glow text-center text-on-surface-variant font-code-sm py-lg">
-    Connect a URL and generate your first video ✨
-  </div>
-</div>
-</section>
-</main>
-</div>
-
-<!-- Help Modal -->
-<div class="help-overlay" id="helpOverlay" onclick="toggleHelp()">
-  <div class="glass-panel glass-card-inner-glow" style="max-width:420px;width:90%;padding:24px;border-radius:16px" onclick="event.stopPropagation()">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-headline-md text-headline-md text-primary">📖 Hướng dẫn</h3>
-      <button onclick="toggleHelp()" class="text-on-surface-variant hover:text-primary text-lg">✕</button>
-    </div>
-    <div class="font-body-md text-body-md text-on-surface-variant space-y-3">
-      <p><b class="text-primary">1.</b> Paste URL hoặc chọn Script mode</p>
-      <p><b class="text-primary">2.</b> Chọn giọng đọc (tab 🎤)</p>
-      <p><b class="text-primary">3.</b> Chọn nhạc nền (tab 🎵)</p>
-      <p><b class="text-primary">4.</b> Cấu hình Style/Tốc độ/Khổ (tab ⚙️)</p>
-      <p><b class="text-primary">5.</b> ✨ <b>Tạo Video</b> → xem + tải MP4</p>
-      <hr class="border-white/10 my-3">
-      <p class="font-code-sm text-[11px]" id="helpVersion">... • Mac mini M4 • VieNeu TTS • AI World</p>
-    </div>
-  </div>
-</div>
-
 <script>
-var voices=[],favs=JSON.parse(localStorage.getItem("xvf")||"[]"),sV="female_south",sM="ambient",cf=null,pi=null,ji=null,bgmFiles=[];
-var inputMode="url"; // FIX: track current input mode
-var ttsReady=false;
+// ===== X-Video Wizard App (v1.27.7) — rewritten by Tiep QSO =====
+var ST = {
+  step: 1,
+  mode: "url",        // url | text
+  url: "",
+  title: "",
+  content: "",
+  style: "news",
+  aspect: "doc",
+  resolution: "hd",
+  voice: "female_south",
+  music: "ambient",
+  length: 0,
+  rewriteStyle: "news",
+  jobId: "",
+  voices: [],
+  bgms: [],
+  llmProvider: "local_ollama",
+  llmModel: "",
+  llmBaseUrl: "",
+  llmProviders: [],
+  extractMode: "local"
+};
 
-document.addEventListener("DOMContentLoaded",function(){
-  loadVoices();
-  loadBgm();
-  loadVersion();
-  pollTtsReady();
+function $(id){return document.getElementById(id);}
+function escH(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+var STYLES=[["news","📺 Bản tin"],["reportage","🎬 Phóng sự"],["analysis","📊 Phân tích"],["story","📖 Kể chuyện"],["hot","🔥 Tin nóng"]];
+var ASPECTS=[["doc","📱 Dọc 9:16"],["ngang","🖥️ Ngang 16:9"],["vuong","⬛ Vuông 1:1"]];
+var RESOS=[["hd","HD 720"],["fhd","FHD 1080"],["2k","2K"],["4k","4K"]];
+var LENGTHS=[[0,"Auto"],[30,"~30s"],[60,"~1 phút"],[90,"~1.5 phút"],[120,"~2 phút"],[180,"~3 phút"]];
+function chips(arr,cur,fn){
+  return arr.map(function(o){
+    var on=String(o[0])===String(cur);
+    return '<button onclick="'+fn+'(\''+o[0]+'\')" class="px-3 py-2 rounded-lg text-[12px] font-semibold border transition" style="'+(on?'border-color:rgba(103,221,255,.65);background:rgba(103,221,255,.12);color:#67ddff':'border-color:rgba(255,255,255,.12);color:#bbc9cc')+'">'+o[1]+'</button>';
+  }).join('');
+}
+
+
+function setStep(n){
+  captureLive();
+  ST.step=n;
+  saveProgress("checkpoint");
+  $("stepHint").textContent="Bước "+n+"/4 · "+["","Nguồn nội dung","Duyệt nội dung","Cấu hình","Phân cảnh & Ghép"][n];
+  document.querySelectorAll(".step-dot").forEach(function(d){
+    var s=parseInt(d.getAttribute("data-s"));
+    d.style.color = s===n ? "#44d8f1" : (s<n?"#5ee3a1":"#bbc9cc");
+    d.style.fontWeight = s===n ? "800" : "500";
+  });
+  render();
+}
+
+function toast(msg,err){
+  var t=$("xvToast");
+  if(!t){t=document.createElement("div");t.id="xvToast";t.style.cssText="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9998;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;backdrop-filter:blur(10px);max-width:80vw;text-align:center";document.body.appendChild(t);}
+  t.style.background=err?"rgba(255,141,161,.18)":"rgba(94,227,161,.18)";
+  t.style.border="1px solid "+(err?"rgba(255,141,161,.5)":"rgba(94,227,161,.5)");
+  t.style.color=err?"#ffb4ab":"#5ee3a1";
+  t.textContent=msg; t.style.display="block";
+  clearTimeout(t._h); t._h=setTimeout(function(){t.style.display="none";},4000);
+}
+
+var STORE_KEY="xvideo.progress.current";
+var HIST_KEY="xvideo.progress.history";
+function captureLive(){
+  if($("srcUrl"))ST.url=$("srcUrl").value;
+  if($("srcText"))ST.content=$("srcText").value;
+  if($("edTitle"))ST.title=$("edTitle").value;
+  if($("edContent"))ST.content=$("edContent").value;
+  if($("cfgVoice"))ST.voice=$("cfgVoice").value;
+  if($("cfgMusic"))ST.music=$("cfgMusic").value;
+}
+function snapshot(){captureLive();return JSON.parse(JSON.stringify({ts:new Date().toISOString(),state:ST}));}
+function saveProgress(reason){
+  try{var snap=snapshot();localStorage.setItem(STORE_KEY,JSON.stringify(snap));
+    var h=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");
+    if(reason==="checkpoint"||!h.length||Date.now()-Date.parse(h[0].ts)>60000){h.unshift(snap);h=h.slice(0,20);localStorage.setItem(HIST_KEY,JSON.stringify(h));}
+  }catch(e){}
+}
+function restoreSnap(snap){if(!snap||!snap.state)return;ST=Object.assign(ST,snap.state);setStep(ST.step||1);toast("Đã restore tiến trình");}
+function restoreLatest(){try{var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s)restoreSnap(s);}catch(e){}}
+function exportProgress(){saveProgress("checkpoint");var data=localStorage.getItem(STORE_KEY)||JSON.stringify(snapshot());var blob=new Blob([data],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="xvideo-progress-"+(new Date().toISOString().replace(/[:.]/g,"-"))+".json";a.click();URL.revokeObjectURL(a.href);}
+function showHistory(){
+  var h=[];try{h=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");}catch(e){}
+  var html='<div class="help-overlay on" id="histOverlay"><div class="glass-panel rounded-xl p-md" style="width:min(720px,92vw);max-height:80vh;overflow:auto">'+
+    '<div class="flex justify-between items-center mb-3"><h2 class="text-headline-md font-bold">Lịch sử tiến trình</h2><button onclick="$(\'histOverlay\').remove()" class="px-3 py-1 rounded-full border border-white/15">Đóng</button></div>';
+  if(!h.length)html+='<p class="text-[12px] text-on-surface-variant">Chưa có lịch sử.</p>';
+  h.forEach(function(x,i){var st=x.state||{};html+='<div class="p-3 mb-2 rounded-lg" style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)"><div class="text-[12px] font-bold">'+escH(st.title||st.url||"Chưa đặt tên")+'</div><div class="text-[10px] text-on-surface-variant">'+x.ts+' · bước '+(st.step||1)+' · '+((st.content||"").split(/\s+/).filter(Boolean).length)+' từ</div><button class="mt-2 px-3 py-1 rounded-full border border-white/15 text-[11px]" onclick="restoreSnap(JSON.parse(localStorage.getItem(\'HIST_KEY_TMP_\'+ '+i+'))) ">Restore</button></div>';localStorage.setItem('HIST_KEY_TMP_'+i,JSON.stringify(x));});
+  html+='</div></div>';document.body.insertAdjacentHTML('beforeend',html);
+}
+setInterval(function(){saveProgress();},2000);
+window.addEventListener("beforeunload",function(){saveProgress("checkpoint")});
+document.addEventListener("visibilitychange",function(){if(document.hidden)saveProgress("checkpoint")});
+document.addEventListener("input",function(e){
+  var t=e.target;if(!t)return;
+  if(t.id==="srcUrl"||t.id==="srcText"||t.id==="edTitle"||t.id==="edContent"||t.classList.contains("sb-headline")||t.classList.contains("sb-text")){saveProgress();}
 });
+document.addEventListener("change",function(e){
+  var t=e.target;if(!t)return;
+  if(t.id==="cfgVoice"||t.id==="cfgMusic"||t.classList.contains("sb-template")||t.classList.contains("sb-visual")||t.classList.contains("sb-motion")||t.classList.contains("sb-asset")){saveProgress("checkpoint");}
+});
+setTimeout(function(){try{var s=JSON.parse(localStorage.getItem(STORE_KEY)||"null"); if(s&&s.state&&(s.state.content||s.state.url)&&!ST.content&&!ST.url){toast("Có tiến trình cũ · bấm Lịch sử để restore");}}catch(e){}},800);
 
-// TTS readiness polling
-var _ttsPollTimer=null;
-function pollTtsReady(){
-  fetch("/api/warmup-tts").then(function(r){return r.json()}).then(function(d){
-    var detail=document.getElementById("ttsDetailText");
-    if(d.status==="ready"){
-      ttsReady=true;
-      document.getElementById("ttsOverlay").classList.add("hidden");
-      clearTimeout(_ttsPollTimer);
-    } else {
-      ttsReady=false;
-      if(detail) detail.innerHTML=(d.detail||"Đang tải model...").replace(/\(/g,'<br><span style="font-size:10px;opacity:0.6">(').replace(/\)/g,')</span>');
-      _ttsPollTimer=setTimeout(pollTtsReady, 3000);
-    }
-  }).catch(function(){
-    _ttsPollTimer=setTimeout(pollTtsReady, 5000);
-  });
+// ---- main render router ----
+function render(){
+  var r=$("wizardRoot");
+  if(ST.step===1) r.innerHTML=viewStep1();
+  else if(ST.step===2) r.innerHTML=viewStep2();
+  else if(ST.step===3) r.innerHTML=viewStep3();
+  else if(ST.step===4) r.innerHTML=viewStep4();
+  if(ST.step===4) loadStoryboard();
 }
 
-// FIX: fetch version từ /healthz
-function loadVersion(){
-  fetch("/healthz").then(function(r){return r.json()}).then(function(d){
-    var v="v"+(d.version||"?");
-    var el=document.getElementById("appVersion");
-    if(el)el.textContent=v;
-    var hv=document.getElementById("helpVersion");
-    if(hv)hv.textContent=v+" • Mac mini M4 • VieNeu TTS • AI World";
-  }).catch(function(){});
+// ---- STEP 1: Source ----
+function viewStep1(){
+  return ''+
+  '<div class="glass-panel rounded-xl p-md glass-card-inner-glow">'+
+    '<h2 class="text-headline-md font-bold text-on-surface mb-1">Bắt đầu video mới</h2>'+
+    '<p class="text-[12px] text-on-surface-variant mb-4">Chọn nguồn: dán link bài viết hoặc nhập nội dung tự do.</p>'+
+    '<div class="flex gap-2 mb-3">'+
+      '<button onclick="setMode(\'url\')" class="input-mode-btn '+(ST.mode==="url"?"active":"")+'">🔗 Từ link bài viết</button>'+
+      '<button onclick="setMode(\'text\')" class="input-mode-btn '+(ST.mode==="text"?"active":"")+'">📝 Nhập nội dung</button>'+
+    '</div>'+
+    (ST.mode==="url"
+      ? '<input id="srcUrl" class="glass-input w-full" style="font-size:13px" placeholder="https://aiworld.vn/bai-viet..." value="'+escH(ST.url)+'">'+
+        '<div class="mt-3 p-3 rounded-lg" style="background:rgba(103,221,255,.05);border:1px solid rgba(103,221,255,.18)">'+
+          '<label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Cách lấy nội dung từ link</label>'+
+          '<div class="flex flex-wrap gap-2 mb-2">'+
+            '<button onclick="setExtractMode(\'local\')" class="px-3 py-2 rounded-lg text-[12px] font-semibold border" style="'+(ST.extractMode==="local"?'border-color:rgba(68,216,241,.6);background:rgba(68,216,241,.1);color:#44d8f1':'border-color:rgba(255,255,255,.12);color:#bbc9cc')+'">⚙️ Local parser</button>'+
+            '<button onclick="setExtractMode(\'llm\')" class="px-3 py-2 rounded-lg text-[12px] font-semibold border" style="'+(ST.extractMode==="llm"?'border-color:rgba(68,216,241,.6);background:rgba(68,216,241,.1);color:#44d8f1':'border-color:rgba(255,255,255,.12);color:#bbc9cc')+'">🧠 LLM làm sạch nội dung</button>'+
+          '</div>'+
+          '<div class="text-[10px] text-on-surface-variant mb-2">Local = nhanh, deterministic. LLM = dùng provider đã chọn để bóc phần bài viết chính, bỏ menu/rác/ads.</div>'+
+          (ST.extractMode==="llm"?llmPickerHtml("s1"):"")+
+        '</div>'
+      : '<textarea id="srcText" class="glass-input w-full" rows="7" style="font-size:13px" placeholder="Dán nội dung muốn tạo video...">'+escH(ST.content)+'</textarea>')+
+    '<div class="flex justify-end mt-4">'+
+      '<button onclick="step1Next()" id="s1btn" class="btn-shine bg-primary text-black font-bold py-2.5 px-7 rounded-full text-[13px] neon-glow-primary hover:bg-primary-fixed">Tiếp tục →</button>'+
+    '</div>'+
+  '</div>';
 }
-
-function toggleHelp(){document.getElementById("helpOverlay").classList.toggle("on")}
-
-// FIX: input mode switch — URL vs Script
-function setInputMode(mode){
-  inputMode=mode;
-  document.getElementById("inputUrl").style.display=mode==="url"?"flex":"none";
-  document.getElementById("inputText").style.display=mode==="text"?"block":"none";
-  document.getElementById("modeUrl").classList.toggle("active",mode==="url");
-  document.getElementById("modeText").classList.toggle("active",mode==="text");
+function setMode(m){
+  if(ST.mode==="url"&&$("srcUrl"))ST.url=$("srcUrl").value;
+  if(ST.mode==="text"&&$("srcText"))ST.content=$("srcText").value;
+  ST.mode=m; render();
 }
-
-// FIX: Style Cards kết nối vào #style select
-function selectStyle(el,val){
-  document.querySelectorAll(".style-card").forEach(function(c){c.classList.remove("active")});
-  el.classList.add("active");
-  var sel=document.getElementById("style");
-  if(sel)sel.value=val;
+function setExtractMode(m){
+  if($("srcUrl"))ST.url=$("srcUrl").value;
+  ST.extractMode=m;
+  render();
 }
-
-function switchTab(t,id){
-  document.querySelectorAll(".tab-btn").forEach(function(e){
-    e.classList.remove("text-primary","border-primary/30","bg-primary/10");
-    e.classList.add("border-transparent","text-on-surface-variant");
-  });
-  t.classList.add("text-primary","border-primary/30","bg-primary/10");
-  t.classList.remove("border-transparent","text-on-surface-variant");
-  document.querySelectorAll(".tab-panel").forEach(function(e){e.style.display="none"});
-  var panel=document.getElementById(id+"Panel");
-  if(panel)panel.style.display="block";
-}
-
-async function loadVoices(){
-  try{var r=await fetch("/api/voices");var d=await r.json();voices=d.voices||[];renderVoices()}catch(e){}
-}
-function renderVoices(){
-  var el=document.getElementById("vl");if(!el)return;
-  el.innerHTML="";
-  voices.forEach(function(v){
-    var d=document.createElement("div");
-    d.className="select-item"+(v.id===sV?" on":"");
-    d.innerHTML="<span style='font-size:12px;cursor:pointer;flex:1' onclick=\"selV('"+escAttr(v.id)+"')\">"+(v.name||v.id)+"</span><button class='play-btn' onclick=\"event.stopPropagation();pV('"+escAttr(v.id)+"')\">▶</button>";
-    el.appendChild(d);
-  });
-}
-function selV(id){sV=id;renderVoices()}
-function pV(vid){
-  var t=vid.startsWith("female")||vid.startsWith("male")?"Xin chào, đây là giọng đọc từ X Video Studio.":"Hello, this is a voice preview.";
-  var l=vid.startsWith("female")||vid.startsWith("male")?"vi":"en";
-  var a=document.getElementById("pa");
-  a.src="/api/preview-voice?voice="+encodeURIComponent(vid)+"&text="+encodeURIComponent(t)+"&language="+l+"&t="+Date.now();
-  a.load();a.play().catch(function(){});
-}
-
-// FIX: loadBgm dùng /api/bgm-files — endpoint đã có
-async function loadBgm(){
-  try{
-    var r=await fetch("/api/bgm-files");
-    var d=await r.json();
-    bgmFiles=d.files||[];
-    renderMusic();
-  }catch(e){renderMusic();}
-}
-function renderMusic(){
-  var el=document.getElementById("ml");if(!el)return;
-  el.innerHTML="";
-  // Built-in styles
-  [{id:"ambient",n:"Ambient"},{id:"corporate",n:"Corporate"},{id:"tech",n:"Tech"},{id:"cinematic",n:"Cinematic"},{id:"none",n:"Không nhạc"}].forEach(function(s){
-    var d=document.createElement("div");
-    d.className="select-item"+(sM===s.id?" on":"");
-    d.onclick=function(){sM=s.id;renderMusic()};
-    d.innerHTML="<span style='flex:1'>"+s.n+"</span>";
-    el.appendChild(d);
-  });
-  // Custom BGM files từ bgm_audio/
-  bgmFiles.forEach(function(t){
-    var d=document.createElement("div");
-    d.className="select-item"+(sM===t.id?" on":"");
-    d.onclick=function(){sM=t.id;renderMusic()};
-    d.innerHTML="<span style='flex:1'>🎵 "+escHtml(t.name)+"</span>";
-    el.appendChild(d);
-  });
-}
-
-function onCF(i){if(i.files&&i.files[0]){cf=i.files[0];document.getElementById("cfs").textContent=cf.name+" ("+Math.round(cf.size/1024)+"KB)"}}
-async function doClone(){
-  if(!cf){document.getElementById("cs").textContent="Chọn file ghi âm trước";return}
-  var nm=document.getElementById("cn").value.trim()||"Giọng mới";
-  var btn=document.getElementById("cbtn");btn.disabled=true;btn.innerHTML="<span class='spinner'></span>";
-  var fd=new FormData();fd.append("file",cf);fd.append("name",nm);
-  fd.append("lang",document.getElementById("cloneLang").value||"vi");
-  fd.append("region",document.getElementById("cloneRegion").value||"south");
-  fd.append("gender",document.getElementById("cloneGender").value||"female");
-  fd.append("age",document.getElementById("cloneAge").value||"adult");
-  fd.append("style_tag",document.getElementById("cloneStyle").value||"normal");
-  try{
-    var r=await fetch("/api/clone-voice",{method:"POST",body:fd});
-    var d=await r.json();if(d.error)throw new Error(d.error);
-    document.getElementById("cs").textContent="Đã clone: "+(d.display||nm);
-    btn.disabled=false;btn.innerHTML="Clone";cf=null;
-    document.getElementById("cn").value="";document.getElementById("cfs").textContent="Chưa chọn";
-    loadVoices();
-  }catch(e){document.getElementById("cs").textContent="Lỗi: "+e.message;btn.disabled=false;btn.innerHTML="Clone"}
-}
-
-function genVideo(){
-  // Guard: block nếu TTS chưa ready
-  if(!ttsReady){
-    showE("⏳ AI Voice đang khởi động, vui lòng đợi thêm...");
-    return;
-  }
-  // FIX: lấy input tùy theo mode (URL hoặc text)
-  var u="",tx="";
-  if(inputMode==="url"){
-    u=document.getElementById("url").value.trim();
-    if(!u)return showE("Cần URL bài viết");
-  } else {
-    tx=document.getElementById("scriptText").value.trim();
-    if(!tx)return showE("Cần nội dung script");
-  }
-  hideA();
-  var b=document.getElementById("sb");b.disabled=true;b.innerHTML="<span class='spinner'></span> Creating...";
-  document.getElementById("prc").classList.add("on");
-  var p={
-    url:u||undefined,
-    text:tx||undefined,
-    hook:document.getElementById("hook").value.trim()||"Tin nóng:",
-    cta:document.getElementById("cta").value.trim()||"Theo dõi AI World để cập nhật tin mới!",
-    voice:sV,
-    speed:document.getElementById("speed").value,
-    style:document.getElementById("style").value,
-    music:sM,
-    aspect:document.getElementById("aspect").value,
-    resolution:document.getElementById("res").value,
-    language:(sV.startsWith("female")||sV.startsWith("male"))?"vi":"en"
-  };
-  fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
-    .then(function(r){return r.json()})
-    .then(function(d){
+function step1Next(){
+  var btn=$("s1btn");
+  if(ST.mode==="url"){
+    ST.url=$("srcUrl").value.trim();
+    if(!ST.url)return toast("Dán link bài viết",1);
+    btn.disabled=true;btn.innerHTML=(ST.extractMode==="llm"?"Đang đọc + làm sạch bằng LLM...":"Đang đọc...");
+    var body=Object.assign({url:ST.url,extract_mode:ST.extractMode||"local"},llmBody());
+    fetch("/api/prefetch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(d){
       if(d.error)throw new Error(d.error);
-      ji=d.job_id;poll();
-    })
-    .catch(function(e){b.disabled=false;b.innerHTML="✨ Tạo Video";showE("Lỗi: "+e.message);document.getElementById("prc").classList.remove("on")});
+      ST.title=d.title||""; ST.content=d.content||d.excerpt||"";
+      toast("Đã lấy nội dung · "+(d.extract_used||ST.extractMode)+" · "+(d.word_count||0)+" từ");
+      setStep(2);
+    }).catch(function(e){btn.disabled=false;btn.innerHTML="Tiếp tục →";toast("Lỗi đọc: "+e.message,1);});
+  }else{
+    ST.content=$("srcText").value.trim();
+    if(!ST.content)return toast("Nhập nội dung",1);
+    ST.title=ST.content.split("\n")[0].slice(0,120);
+    setStep(2);
+  }
 }
 
-// FIX: poll interval 3s thay vì 1s
-function poll(){
-  clearInterval(pi);
-  pi=setInterval(function(){
-    fetch("/api/jobs/"+ji).then(function(r){return r.json()}).then(function(j){
-      if(j.status==="queued"||j.status==="processing"){setP(j.progress||5);}
-      else if(j.status==="done"){
-        clearInterval(pi);setP(100);
-        document.getElementById("sb").disabled=false;document.getElementById("sb").innerHTML="✨ Tạo Video";
-        document.getElementById("prc").classList.remove("on");showO("Video hoàn tất!");
-        // FIX: XSS safe — dùng DOM API thay vì innerHTML với data từ server
-        addRecentProject(j);
-      }else if(j.status==="error"){
-        clearInterval(pi);
-        showE(j.error||"Lỗi không xác định");
-        document.getElementById("sb").disabled=false;document.getElementById("sb").innerHTML="✨ Tạo Video";
-        document.getElementById("prc").classList.remove("on");
-      }
+// ---- STEP 2: Review content ----
+function viewStep2(){
+  var wc=ST.content.trim()?ST.content.trim().split(/\s+/).length:0;
+  return ''+
+  '<div class="glass-panel rounded-xl p-md glass-card-inner-glow">'+
+    '<h2 class="text-headline-md font-bold text-on-surface mb-1">Duyệt & chỉnh nội dung</h2>'+
+    '<p class="text-[12px] text-on-surface-variant mb-4">Sửa tiêu đề và nội dung đọc trước khi tạo phân cảnh.</p>'+
+    '<label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Tiêu đề</label>'+
+    '<input id="edTitle" class="glass-input w-full mb-3" style="font-size:13px" value="'+escH(ST.title)+'">'+
+    '<label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Nội dung đọc</label>'+
+    '<textarea id="edContent" class="glass-input w-full" rows="16" style="font-size:13px;line-height:1.5;min-height:360px" oninput="updWc()">'+escH(ST.content)+'</textarea>'+
+    '<div class="text-[10px] text-on-surface-variant mt-1" id="wcLabel">'+wc+' từ</div>'+
+    // ---- LLM picker + AI rewrite controls ----
+    llmPickerHtml("s2")+
+    '<div class="mt-4 p-3 rounded-lg" style="background:rgba(159,140,255,.06);border:1px solid rgba(159,140,255,.25)">'+
+      '<div class="flex items-center gap-2 mb-2"><span class="text-[12px] font-bold" style="color:#9f8cff">✨ Viết lại bằng AI</span>'+
+        '<span class="text-[10px] text-on-surface-variant">giữ thông tin & số liệu, đổi phong cách + độ dài</span></div>'+
+      '<div class="mb-2"><label class="block text-[10px] font-semibold text-on-surface-variant uppercase mb-1">Phong cách viết</label>'+
+        '<div class="flex flex-wrap gap-1.5">'+chips(STYLES,ST.rewriteStyle,"setRwStyle")+'</div></div>'+
+      '<div class="mb-2"><label class="block text-[10px] font-semibold text-on-surface-variant uppercase mb-1">Độ dài video</label>'+
+        '<div class="flex flex-wrap gap-1.5">'+chips(LENGTHS,ST.length,"setLength")+'</div></div>'+
+      '<div class="flex gap-2 mt-3">'+
+        '<button onclick="doRewrite(false)" id="rwBtn" class="flex-1 py-2 rounded-lg text-[12px] font-bold" style="background:linear-gradient(135deg,#9f8cff,#67ddff);color:#0b1020">✨ Viết lại</button>'+
+        '<button onclick="doRewrite(true)" id="rwRnd" class="py-2 px-3 rounded-lg text-[12px] font-semibold border border-white/15 text-on-surface-variant hover:bg-white/10" title="Phong cách ngẫu nhiên">🎲 Random</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="flex justify-between mt-4">'+
+      '<button onclick="setStep(1)" class="py-2.5 px-5 rounded-full border border-white/15 text-on-surface-variant text-[13px] hover:bg-white/10">← Quay lại</button>'+
+      '<button onclick="step2Next()" class="btn-shine bg-primary text-black font-bold py-2.5 px-7 rounded-full text-[13px] neon-glow-primary hover:bg-primary-fixed">Tiếp tục →</button>'+
+    '</div>'+
+  '</div>';
+}
+function updWc(){var t=$("edContent").value.trim();$("wcLabel").textContent=(t?t.split(/\s+/).length:0)+" từ";}
+function step2Next(){
+  ST.title=$("edTitle").value.trim();
+  ST.content=$("edContent").value.trim();
+  if(!ST.content)return toast("Nội dung trống",1);
+  setStep(3);
+}
+function setRwStyle(v){ST.content=$("edContent")?$("edContent").value:ST.content;ST.title=$("edTitle")?$("edTitle").value:ST.title;ST.rewriteStyle=v;render();}
+function setLength(v){ST.content=$("edContent")?$("edContent").value:ST.content;ST.title=$("edTitle")?$("edTitle").value:ST.title;ST.length=parseInt(v);render();}
+function doRewrite(rnd){
+  ST.title=$("edTitle")?$("edTitle").value.trim():ST.title;
+  ST.content=$("edContent")?$("edContent").value.trim():ST.content;
+  if(!ST.content)return toast("Nội dung trống",1);
+  var b=$("rwBtn"),br=$("rwRnd");
+  if(b){b.disabled=true;b.innerHTML="✨ Đang viết lại...";}
+  if(br)br.disabled=true;
+  fetch("/api/rewrite",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(Object.assign({text:ST.content,title:ST.title,style:ST.rewriteStyle,length:ST.length,random:!!rnd},llmBody()))})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.error)throw new Error(d.error);
+      ST.content=d.text;
+      if(d.style){ST.rewriteStyle=d.style;ST.style=d.style;}
+      render();
+      toast("✨ Đã viết lại · "+d.word_count+" từ · "+(d.style||"")+(rnd?" 🎲":""));
+    }).catch(function(e){toast("Lỗi viết lại: "+e.message,1);
+      var bb=$("rwBtn");if(bb){bb.disabled=false;bb.innerHTML="✨ Viết lại";}var bbr=$("rwRnd");if(bbr)bbr.disabled=false;});
+}
+
+// ---- STEP 3: Config (style, aspect, resolution, voice, music) ----
+function viewStep3(){
+  function chips(arr,cur,fn){
+    return arr.map(function(o){
+      var on=o[0]===cur;
+      return '<button onclick="'+fn+'(\''+o[0]+'\')" class="px-3 py-2 rounded-lg text-[12px] font-semibold border transition '+(on?"":"")+'" style="'+(on?"border-color:rgba(68,216,241,.6);background:rgba(68,216,241,.1);color:#44d8f1":"border-color:rgba(255,255,255,.12);color:#bbc9cc")+'">'+o[1]+'</button>';
+    }).join("");
+  }
+  var voiceOpts=ST.voices.map(function(v){return '<option value="'+v.id+'"'+(v.id===ST.voice?" selected":"")+'>'+v.name+' · '+v.engine+'</option>';}).join("");
+  var bgmOpts=ST.bgms.map(function(b){return '<option value="'+b.id+'"'+(b.id===ST.music?" selected":"")+'>'+b.name+'</option>';}).join("");
+  return ''+
+  '<div class="glass-panel rounded-xl p-md glass-card-inner-glow">'+
+    '<h2 class="text-headline-md font-bold text-on-surface mb-4">Cấu hình video</h2>'+
+    llmPickerHtml("s3")+
+    '<div class="mb-4"><label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Thể loại</label>'+
+      '<div class="flex flex-wrap gap-2">'+chips(STYLES,ST.style,"setStyle")+'</div></div>'+
+    '<div class="mb-4"><label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Khổ video</label>'+
+      '<div class="flex flex-wrap gap-2">'+chips(ASPECTS,ST.aspect,"setAspect")+'</div></div>'+
+    '<div class="mb-4"><label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Độ phân giải</label>'+
+      '<div class="flex flex-wrap gap-2">'+chips(RESOS,ST.resolution,"setReso")+'</div></div>'+
+    '<div class="grid grid-cols-2 gap-3 mb-2">'+
+      '<div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">🎤 Giọng đọc</label>'+
+        '<select id="cfgVoice" class="glass-input w-full" style="font-size:12px" onchange="setVoice(this.value)">'+voiceOpts+'</select></div>'+
+      '<div><label class="block text-[11px] font-semibold text-on-surface-variant uppercase mb-2">🎵 Nhạc nền</label>'+
+        '<select id="cfgMusic" class="glass-input w-full" style="font-size:12px" onchange="ST.music=this.value">'+bgmOpts+'</select></div>'+
+    '</div>'+
+    '<div class="flex justify-between mt-4">'+
+      '<button onclick="setStep(2)" class="py-2.5 px-5 rounded-full border border-white/15 text-on-surface-variant text-[13px] hover:bg-white/10">← Quay lại</button>'+
+      '<button onclick="step3Next()" id="s3btn" class="btn-shine bg-primary text-black font-bold py-2.5 px-7 rounded-full text-[13px] neon-glow-primary hover:bg-primary-fixed">Tạo phân cảnh →</button>'+
+    '</div>'+
+  '</div>';
+}
+function setStyle(v){ST.style=v;saveProgress("checkpoint");render();}
+function setAspect(v){ST.aspect=v;saveProgress("checkpoint");render();}
+function setReso(v){ST.resolution=v;saveProgress("checkpoint");render();}
+function setVoice(v){ST.voice=v;try{localStorage.setItem("xvideo:lastVoice",v);}catch(e){};saveProgress("checkpoint");}
+
+function step3Next(){
+  var btn=$("s3btn");btn.disabled=true;btn.innerHTML="Đang tạo phân cảnh...";
+  var payload={
+    voice:ST.voice, aspect:ST.aspect, style:ST.style, resolution:ST.resolution,
+    music:ST.music, target_length:ST.length||0, language:(ST.voice.indexOf("female")===0||ST.voice.indexOf("male")===0)?"vi":"en",
+    use_stock:false, review_storyboard:true
+  };
+  if(ST.mode==="url" && ST.url && ST.content===ST._origContent){ payload.url=ST.url; }
+  else { payload.text=(ST.title?ST.title+"\n":"")+ST.content; if(ST.url)payload.image_url=ST.url; }
+  fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.error)throw new Error(d.error);
+      ST.jobId=d.job_id;
+      saveProgress("checkpoint");
+      pollStoryboardReady();
+    }).catch(function(e){btn.disabled=false;btn.innerHTML="Tạo phân cảnh →";toast("Lỗi: "+e.message,1);});
+}
+function pollStoryboardReady(){
+  var t0=Date.now();
+  var iv=setInterval(function(){
+    if(Date.now()-t0>120000){clearInterval(iv);toast("Quá thời gian tạo phân cảnh",1);if($("s3btn")){$("s3btn").disabled=false;$("s3btn").innerHTML="Tạo phân cảnh →";}return;}
+    fetch("/api/jobs/"+ST.jobId).then(function(r){return r.json()}).then(function(j){
+      if(j.status==="storyboard_ready"){clearInterval(iv);setStep(4);}
+      else if(j.status==="error"){clearInterval(iv);toast(j.error||"Lỗi tạo phân cảnh",1);if($("s3btn")){$("s3btn").disabled=false;$("s3btn").innerHTML="Tạo phân cảnh →";}}
     }).catch(function(){});
-  },3000);
+  },2500);
 }
 
-// FIX: XSS safe project card dùng DOM API
-function addRecentProject(j){
-  var pj=document.getElementById("recentProjects");
-  pj.innerHTML="";
-
-  var card=document.createElement("div");
-  card.className="glass-panel rounded-lg p-sm flex items-center gap-md glass-card-inner-glow";
-
-  var icon=document.createElement("div");
-  icon.className="w-24 h-16 bg-surface-container rounded flex items-center justify-center text-xl flex-shrink-0";
-  icon.textContent="🎬";
-
-  var info=document.createElement("div");
-  info.className="flex-1 min-w-0";
-  var title=document.createElement("h4");
-  title.className="font-label-md text-label-md text-on-surface truncate";
-  title.textContent=j.title||j.video_path||"Video";
-  var meta=document.createElement("p");
-  meta.className="font-code-sm text-code-sm text-on-surface-variant mt-1";
-  meta.textContent="Vừa xong • "+(j.duration||"---")+"s • "+(j.size_kb||"?")+"KB";
-  info.appendChild(title);
-  info.appendChild(meta);
-
-  var badge=document.createElement("div");
-  badge.className="flex items-center gap-xs px-3 py-1 rounded-full bg-cyan-900/30 border border-cyan-500/30 flex-shrink-0";
-  badge.innerHTML='<span class="w-2 h-2 rounded-full bg-primary"></span><span class="font-code-sm text-[11px] text-primary">Ready</span>';
-
-  var dl=document.createElement("a");
-  dl.className="text-on-surface-variant hover:text-white p-2 flex-shrink-0";
-  dl.textContent="⬇";
-  dl.href="/output/"+encodeURIComponent(j.video_path||"");
-  dl.download=j.video_path||"video.mp4";
-
-  card.appendChild(icon);
-  card.appendChild(info);
-  card.appendChild(badge);
-  card.appendChild(dl);
-  pj.appendChild(card);
-
-  // Video player
-  var v=document.createElement("video");
-  v.controls=true;
-  v.src="/output/"+encodeURIComponent(j.video_path||"");
-  v.style.cssText="width:100%;max-height:300px;border-radius:12px;margin-top:8px";
-  pj.appendChild(v);
+// ---- STEP 4: Storyboard management + render ----
+function viewStep4(){
+  return ''+
+  '<div class="glass-panel rounded-xl p-md glass-card-inner-glow">'+
+    '<div class="flex items-center justify-between mb-2">'+
+      '<h2 class="text-headline-md font-bold text-on-surface">Phân cảnh</h2>'+
+      '<span class="text-[11px] text-on-surface-variant" id="sbMeta"></span>'+
+    '</div>'+
+    '<p class="text-[12px] text-on-surface-variant mb-3">Sửa lời, đổi ảnh, xóa hoặc thêm cảnh. Xong bấm Ghép video.</p>'+
+    '<div id="sbScenes" class="flex flex-col gap-3 mb-3"><div class="text-[12px] text-on-surface-variant py-4 text-center">Đang tải phân cảnh...</div></div>'+
+    '<div class="flex items-center justify-between gap-2 mb-2">'+
+      '<button onclick="sbAdd()" class="px-4 py-2 rounded-lg border border-primary/40 text-primary text-[12px] font-semibold hover:bg-primary/10">+ Thêm cảnh</button>'+
+      '<div class="flex gap-2">'+
+        '<button onclick="setStep(3)" class="py-2 px-5 rounded-full border border-white/15 text-on-surface-variant text-[13px] hover:bg-white/10">← Cấu hình</button>'+
+        '<button onclick="sbRender()" id="sbRenderBtn" class="btn-shine bg-primary text-black font-bold py-2 px-6 rounded-full text-[13px] neon-glow-primary hover:bg-primary-fixed">🎬 Ghép video</button>'+
+      '</div>'+
+    '</div>'+
+    '<div id="renderProgress" style="display:none" class="mt-3"><div class="progress-bar"><div class="progress-fill" id="rpFill" style="width:0%"></div></div><div class="progress-text" id="rpText">Đang ghép...</div></div>'+
+    '<div id="resultBox" style="display:none" class="mt-3"></div>'+
+  '</div>';
 }
 
-function setP(p){
-  document.getElementById("prf").style.width=p+"%";
-  var m=["Khởi động...","Tải nội dung...","Tạo giọng đọc...","Tạo nhạc nền...","Đang render...","Hoàn tất!"];
-  document.getElementById("prt").textContent=m[Math.min(5,Math.floor(p/20))];
+var LAYOUT_LABELS={"kenburns-zoom":"Zoom","kenburns-pan":"Lia ngang","split-reveal":"Tách lộ","fade-up":"Mờ dần","center-pop":"Bật giữa"};
+var VISUAL_LABELS={"random":"🎲 Random","kinetic_quote":"Kinetic quote","data_card":"Data card","process_flow":"Process flow","takeaway":"Takeaway","image_card":"Image card"};
+var HV_TEMPLATES=[];
+function hvLoadTemplates(cb){
+  if(HV_TEMPLATES.length){if(cb)cb();return;}
+  fetch("/api/hv/templates?aspect=9:16").then(function(r){return r.json()}).then(function(d){
+    HV_TEMPLATES=(d&&d.templates)||[];if(cb)cb();
+  }).catch(function(){if(cb)cb();});
 }
-function showE(m){var e=document.getElementById("err");e.textContent=m;e.classList.add("on")}
-function showO(m){var e=document.getElementById("ok");e.textContent=m;e.classList.add("on");setTimeout(function(){e.classList.remove("on")},4000)}
-function hideA(){document.getElementById("err").classList.remove("on");document.getElementById("ok").classList.remove("on")}
+function hvTemplateOptions(sel){
+  var isConcrete=sel&&sel!=="random";
+  var def='<option value="random"'+((!sel||sel==="random")?" selected":"")+'>🎲 Ngẫu nhiên</option>';
+  var found=false;
+  var opts=HV_TEMPLATES.map(function(t){
+    var on=(t.id===sel); if(on)found=true;
+    return '<option value="'+t.id+'" '+(on?"selected":"")+'>'+escH(t.name)+' · '+escH(t.category||"")+'</option>';
+  }).join("");
+  // INVARIANT: never silently drop a concrete selected template. If the catalog
+  // has not loaded yet, or does not contain the selected template for this aspect,
+  // still render the concrete option as selected so the dropdown can NOT fall back
+  // to "Ngẫu nhiên" on re-render. This is the real fix for "sync reverts to random".
+  if(isConcrete&&!found){
+    opts='<option value="'+escH(sel)+'" selected>'+escH(sel)+'</option>'+opts;
+  }
+  return def+opts;
+}
+var MOTION_LABELS={"random":"🎲 Random","typewriter":"Typewriter","count_up":"Count up","flow_lines":"Flow lines","slide_up":"Slide up","zoom_mesh":"Zoom mesh"};
+var ASSET_LABELS={"random":"🎲 Random","none":"Không ảnh","article_only":"Ảnh bài viết","manual":"Ảnh thủ công"};
+function opts(map,val){var cur=val||"random";return Object.keys(map).map(function(k){return '<option value="'+k+'" '+(k===cur?'selected':'')+'>'+map[k]+'</option>';}).join('');}
+function loadStoryboard(){
+  // Template catalog loads async. Render scene cards only after the catalog is
+  // available; otherwise the template dropdown falls back to only "Ngẫu nhiên".
+  hvLoadTemplates(function(){
+  fetch("/api/storyboard/"+ST.jobId).then(function(r){return r.json()}).then(function(d){
+    if(d.error){$("sbScenes").innerHTML='<div class="text-[12px]" style="color:#ffb4ab">'+escH(d.error)+'</div>';return;}
+    $("sbMeta").textContent=d.scenes.length+" cảnh · "+(d.total_duration||0)+"s";
+    $("sbScenes").innerHTML=d.scenes.map(function(s,i){
+      var img=s.image?("/api/storyboard/"+ST.jobId+"/asset/"+s.image.split("/").pop()+"?t="+Date.now()):"";
+      var prev=(s.preview&&s.preview.png)?("/api/storyboard/"+ST.jobId+"/asset/"+s.preview.png.split("/").pop()+"?t="+Date.now()):"";
+      var thumb=prev?'<img src="'+prev+'" style="width:128px;height:100%;min-height:150px;object-fit:cover;border-radius:14px;flex-shrink:0;align-self:stretch;border:1px solid rgba(255,255,255,.12)">':(img?'<img src="'+img+'" style="width:128px;height:100%;min-height:150px;object-fit:cover;border-radius:14px;flex-shrink:0;align-self:stretch;opacity:.75">':'<div style="width:128px;min-height:150px;border-radius:14px;background:linear-gradient(135deg,rgba(103,221,255,.12),rgba(159,140,255,.10));display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:stretch;font-size:11px;color:#9aa8ac;text-align:center;padding:10px">HTML<br>motion<br>scene</div>');
+      return '<div class="flex items-stretch p-3 rounded-lg" style="gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);align-items:stretch">'+
+        thumb+
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between">'+
+          '<div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold" style="color:#44d8f1">CẢNH '+(i+1)+'</span>'+
+          '<span class="text-[10px]" style="color:#869396">'+s.duration+'s · '+(VISUAL_LABELS[s.visual_type]||s.visual_type||"")+' · '+(s.preview&&s.preview.status?s.preview.status:"pending")+'</span></div>'+
+          '<input class="glass-input sb-headline mb-1" style="font-size:12px;width:100%" data-sid="'+s.id+'" value="'+escH(s.headline||'')+'" placeholder="Headline cảnh">'+
+          '<textarea class="glass-input sb-text" rows="3" style="font-size:12px;width:100%;flex:1;min-height:74px" data-sid="'+s.id+'">'+escH(s.text)+'</textarea>'+
+          '<div class="grid grid-cols-3 gap-1 mt-1">'+
+            '<select class="glass-input sb-visual" data-sid="'+s.id+'" style="font-size:11px;padding:6px">'+opts(VISUAL_LABELS,s.visual_type||"random")+'</select>'+
+            '<select class="glass-input sb-motion" data-sid="'+s.id+'" style="font-size:11px;padding:6px">'+opts(MOTION_LABELS,s.motion_preset||"random")+'</select>'+
+            '<select class="glass-input sb-asset" data-sid="'+s.id+'" style="font-size:11px;padding:6px">'+opts(ASSET_LABELS,s.asset_policy||"random")+'</select>'+
+          '</div>'+
+          '<div class="flex items-center gap-1 mt-1">'+
+            '<span class="text-[10px]" style="color:#869396;white-space:nowrap">Template</span>'+
+            '<select class="glass-input sb-template" data-sid="'+s.id+'" style="font-size:11px;padding:6px;flex:1">'+hvTemplateOptions(s.template_id)+'</select>'+
+            '<button onclick="sbRandomTpl(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10" title="Chọn template ngẫu nhiên">🎲</button>'+
+          '</div>'+
+          '<div class="flex gap-1 mt-1 flex-wrap">'+
+            '<button onclick="sbRenderVideo(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid rgba(103,221,255,.4);background:rgba(103,221,255,.12);color:#9beeff">🎬 Render video cảnh</button>'+
+            '<button onclick="sbPreview(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">🖼 Ảnh preview</button>'+
+            '<button onclick="sbRegen(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">🔄 Ảnh bài viết</button>'+
+            '<button onclick="sbSave(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">💾 Lưu</button>'+
+            '<button onclick="sbSyncSettings(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid rgba(242,196,109,.42);background:rgba(242,196,109,.12);color:#f2c46d" title="Khóa setting cảnh này và đồng bộ sang các cảnh còn lại">🔒 Đồng bộ</button>'+
+            '<button onclick="sbDel(\''+s.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10" style="color:#ff8da1">🗑</button>'+
+          '</div>'+
+          '<div class="mt-1 text-[10px]" style="color:#829096">Keywords: '+escH((s.keywords||[]).slice(0,4).join(', '))+' · Số liệu: '+escH((s.numbers||[]).slice(0,3).join(', '))+'</div>'+
+          '<div id="prev_'+s.id+'" class="mt-2"></div>'+
+        '</div></div>';
+    }).join("");
+  }).catch(function(e){$("sbScenes").innerHTML='<div style="color:#ffb4ab">Lỗi: '+escH(e.message)+'</div>';});
+  });
+}
+function sbPayload(sid){
+  var ta=document.querySelector('textarea.sb-text[data-sid="'+sid+'"]');
+  var hd=document.querySelector('input.sb-headline[data-sid="'+sid+'"]');
+  var vt=document.querySelector('select.sb-visual[data-sid="'+sid+'"]');
+  var mt=document.querySelector('select.sb-motion[data-sid="'+sid+'"]');
+  var ap=document.querySelector('select.sb-asset[data-sid="'+sid+'"]');
+  var tp=document.querySelector('select.sb-template[data-sid="'+sid+'"]');
+  return {job_id:ST.jobId,scene_id:sid,text:ta?ta.value.trim():"",headline:hd?hd.value.trim():null,visual_type:vt?vt.value:null,motion_preset:mt?mt.value:null,asset_policy:ap?ap.value:null,template_id:tp?tp.value:null};
+}
+function sbSaveRaw(sid){
+  return fetch("/api/storyboard/scene/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(sbPayload(sid))})
+    .then(function(r){return r.json()});
+}
+function sbSave(sid){
+  sbSaveRaw(sid).then(function(d){toast(d.success?"Đã lưu scene":"Lỗi lưu",!d.success);loadStoryboard();});
+}
+function sbSyncSettings(sid){
+  var payload=sbPayload(sid);
+  // Save source scene first, then sync exactly the saved settings. This prevents
+  // "changed dropdown -> sync" from reading stale storyboard state or falling back to random.
+  sbSaveRaw(sid).then(function(d){
+    if(d.error||!d.success)throw new Error(d.error||"Lỗi lưu scene nguồn trước khi đồng bộ");
+    return fetch("/api/storyboard/scene/sync-settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.error)throw new Error(d.error);
+    saveProgress("checkpoint");
+    toast("Đã lưu nguồn + đồng bộ setting sang "+d.synced+" cảnh");
+    loadStoryboard();
+  }).catch(function(e){toast("Lỗi đồng bộ: "+e.message,1);});
+}
 
-function toggleLang(){
-  var b=document.getElementById("langBtn");
-  if(b.textContent==="VI"){b.textContent="EN";document.getElementById("hook").value="Breaking:";document.getElementById("cta").value="Follow AI World for updates!"}
-  else{b.textContent="VI";document.getElementById("hook").value="Tin nóng:";document.getElementById("cta").value="Theo dõi AI World để cập nhật tin mới!"}
+function sbRegen(sid){
+  toast("Đang tải ảnh mới...");
+  fetch("/api/storyboard/scene/regenerate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:ST.jobId,scene_id:sid})})
+    .then(function(r){return r.json()}).then(function(d){toast(d.success?"Đã đổi ảnh":"Không tìm được ảnh khác",!d.success);loadStoryboard();});
+}
+function sbPreview(sid){
+  var box=$("prev_"+sid); if(box)box.innerHTML='<div class="text-[10px] text-on-surface-variant">Đang render preview cảnh...</div>';
+  fetch("/api/storyboard/scene/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:ST.jobId,scene_id:sid})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.error)throw new Error(d.error);
+      if(box)box.innerHTML='<img src="'+d.preview+'" style="width:100%;max-height:360px;object-fit:contain;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#050713">';
+      toast("Đã render preview cảnh");
+    }).catch(function(e){if(box)box.innerHTML='<div style="color:#ffb4ab;font-size:11px">Lỗi preview: '+escH(e.message)+'</div>';toast("Lỗi preview: "+e.message,1);});
+}
+function sbRandomTpl(sid){
+  if(!HV_TEMPLATES.length){toast("Chưa tải template",1);return;}
+  var sel=document.querySelector('select.sb-template[data-sid="'+sid+'"]');
+  var pick=HV_TEMPLATES[Math.floor(Math.random()*HV_TEMPLATES.length)];
+  if(sel&&pick){
+    sel.value=pick.id;
+    sbSaveRaw(sid).then(function(){toast("Random + đã lưu: "+pick.name);}).catch(function(e){toast("Lỗi lưu random: "+e.message,1);});
+  }
+}
+function sbRenderVideo(sid){
+  var tp=document.querySelector('select.sb-template[data-sid="'+sid+'"]');
+  var tid=tp?tp.value:"random";
+  var box=$("prev_"+sid);
+  if(box)box.innerHTML='<div class="text-[10px]" style="color:#9beeff">Đang render video cảnh bằng html-video engine... (có thể mất ~30-60s)</div>';
+  fetch("/api/hv/scene/render",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:ST.jobId,scene_id:sid,template_id:tid,aspect:"9:16",voice:ST.voice})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.error)throw new Error(d.error);
+      if(box)box.innerHTML='<div class="text-[10px] mb-1" style="color:#9beeff">Template: '+escH(d.template_id)+' · '+escH(d.aspect)+'</div>'+
+        '<video src="'+d.mp4+'" controls autoplay muted loop playsinline style="width:100%;max-height:420px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#050713"></video>';
+      toast("Đã render video cảnh: "+d.template_id);
+    }).catch(function(e){if(box)box.innerHTML='<div style="color:#ffb4ab;font-size:11px">Lỗi render: '+escH(e.message)+'</div>';toast("Lỗi render: "+e.message,1);});
+}
+function sbDel(sid){
+  fetch("/api/storyboard/scene/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:ST.jobId,scene_id:sid})})
+    .then(function(r){return r.json()}).then(function(d){toast(d.success?"Đã xóa cảnh":"Lỗi",!d.success);loadStoryboard();});
+}
+function sbAdd(){
+  fetch("/api/storyboard/scene/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:ST.jobId,text:"Phân cảnh mới - nhập lời rồi render preview"})})
+    .then(function(r){return r.json()}).then(function(d){toast(d.success?"Đã thêm cảnh":"Lỗi",!d.success);loadStoryboard();});
 }
 
-// FIX: helper escape HTML để tránh XSS khi render tên từ API
-function escHtml(s){
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function sbRender(){
+  var btn=$("sbRenderBtn");btn.disabled=true;btn.innerHTML="Đang ghép...";
+  $("renderProgress").style.display="block";
+  fetch("/api/storyboard/"+ST.jobId+"/render",{method:"POST"}).then(function(r){return r.json()}).then(function(d){
+    if(d.error){toast(d.error,1);btn.disabled=false;btn.innerHTML="🎬 Ghép video";return;}
+    var t0=Date.now();
+    var iv=setInterval(function(){
+      if(Date.now()-t0>180000){clearInterval(iv);toast("Quá thời gian ghép",1);btn.disabled=false;btn.innerHTML="🎬 Ghép video";return;}
+      fetch("/api/jobs/"+ST.jobId).then(function(r){return r.json()}).then(function(j){
+        $("rpFill").style.width=(j.progress||70)+"%";
+        $("rpText").textContent="Đang ghép... "+(j.progress||70)+"%";
+        if(j.status==="done"){clearInterval(iv);showResult(j);}
+        else if(j.status==="error"){clearInterval(iv);toast(j.error||"Lỗi ghép",1);btn.disabled=false;btn.innerHTML="🎬 Ghép video";}
+      }).catch(function(){});
+    },2500);
+  }).catch(function(e){toast("Lỗi: "+e.message,1);btn.disabled=false;btn.innerHTML="🎬 Ghép video";});
 }
-function escAttr(s){
-  return String(s).replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+function showResult(j){
+  $("renderProgress").style.display="none";
+  var vp=j.video_path||(j.result&&j.result.video_path);
+  var box=$("resultBox");box.style.display="block";
+  box.innerHTML='<div class="text-[13px] font-bold mb-2" style="color:#5ee3a1">✅ Video hoàn tất</div>'+
+    '<video src="/output/'+vp+'" controls style="width:100%;max-height:60vh;border-radius:12px"></video>'+
+    '<div class="flex gap-2 mt-2"><a href="/output/'+vp+'" download class="px-4 py-2 rounded-full bg-primary text-black text-[12px] font-bold">📥 Tải về</a>'+
+    '<button onclick="resetWizard()" class="px-4 py-2 rounded-full border border-white/15 text-on-surface-variant text-[12px]">+ Video mới</button></div>';
+  toast("Video hoàn tất!");
 }
+function resetWizard(){
+  try{localStorage.removeItem(STORE_KEY);}catch(e){}
+  ST.step=1;ST.url="";ST.title="";ST.content="";ST.jobId="";ST._origContent="";
+  setStep(1);
+  saveProgress("checkpoint");
+}
+function goApiKeys(){window.location.href="/apikeys.html";}
+function toggleHelp(){var h=$("helpOverlay");if(h)h.classList.toggle("hidden");}
+
+// ---- init ----
+function llmCurLabel(){
+  var p=(ST.llmProviders||[]).filter(function(x){return x.id===ST.llmProvider})[0];
+  return p?p.label:(ST.llmProvider||"Local");
+}
+function llmPickerHtml(ctx){
+  var provOpts=(ST.llmProviders||[]).map(function(p){
+    return '<option value="'+p.id+'"'+(p.id===ST.llmProvider?" selected":"")+'>'+escH(p.label)+'</option>';
+  }).join("");
+  var needBase=((ST.llmProviders||[]).filter(function(x){return x.id===ST.llmProvider})[0]||{}).needs_base_url;
+  return '<div class="p-3 rounded-lg mb-3" style="background:rgba(103,221,255,.06);border:1px solid rgba(103,221,255,.25)">'+
+    '<div class="flex items-center gap-2 mb-2"><span class="text-[12px] font-bold" style="color:#67ddff">🧠 LLM</span>'+
+      '<span class="text-[10px] text-on-surface-variant">chọn nơi xử lý nội dung (Local chạy offline, còn lại cần key ở trang API Keys)</span></div>'+
+    '<div class="grid grid-cols-2 gap-2">'+
+      '<select id="llmProv_'+ctx+'" class="glass-input" style="font-size:12px" onchange="onLlmPick(\''+ctx+'\')">'+provOpts+'</select>'+
+      '<input id="llmModel_'+ctx+'" class="glass-input" style="font-size:12px" placeholder="model (trống = mặc định)" value="'+escH(ST.llmModel||"")+'" oninput="ST.llmModel=this.value">'+
+    '</div>'+
+    (needBase?'<input id="llmBase_'+ctx+'" class="glass-input mt-2" style="font-size:12px;font-family:monospace" placeholder="Base URL vd: http://192.168.1.8:20128/v1" value="'+escH(ST.llmBaseUrl||"")+'" oninput="ST.llmBaseUrl=this.value">':'')+
+    '<div class="flex justify-end mt-2"><button onclick="llmSaveTest(\''+ctx+'\')" class="px-3 py-1 rounded text-[11px] border border-white/15 hover:bg-white/10">⚡ Lưu + Test</button></div>'+
+  '</div>';
+}
+function onLlmPick(ctx){
+  var sel=$("llmProv_"+ctx); if(sel)ST.llmProvider=sel.value;
+  var m=$("llmModel_"+ctx); if(m)ST.llmModel=m.value;
+  render();
+}
+function llmBody(){return {llm_provider:ST.llmProvider,llm_model:(ST.llmModel||"").trim(),llm_base_url:(ST.llmBaseUrl||"").trim()};}
+function llmSaveTest(ctx){
+  var m=$("llmModel_"+ctx); if(m)ST.llmModel=m.value;
+  var b=$("llmBase_"+ctx); if(b)ST.llmBaseUrl=b.value;
+  toast("Đang lưu + test LLM...");
+  fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(llmBody())})
+    .then(function(r){return r.json()}).then(function(){
+      return fetch("/api/llm/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(llmBody())});
+    }).then(function(r){return r.json()}).then(function(d){toast((d.success?"✅ Đã lưu + LLM OK ":"❌ ")+(d.detail||""),!d.success);})
+    .catch(function(e){toast("Lỗi: "+e.message,1);});
+}
+function loadLlmConfig(){
+  return Promise.all([
+    fetch("/api/llm/providers").then(function(r){return r.json()}).catch(function(){return{providers:[]}}),
+    fetch("/api/settings").then(function(r){return r.json()}).catch(function(){return{}})
+  ]).then(function(res){
+    ST.llmProviders=(res[0].providers)||[];
+    var st=res[1]||{};
+    if(st.llm_provider)ST.llmProvider=st.llm_provider;
+    ST.llmModel=st.llm_model||"";
+    ST.llmBaseUrl=st.llm_base_url||"";
+  });
+}
+function initApp(){
+  fetch("/healthz").then(function(r){return r.json()}).then(function(d){var v=$("appVersion");if(v)v.textContent="v"+(d.version||"?");}).catch(function(){});
+  loadLlmConfig();
+  Promise.all([
+    fetch("/api/voices").then(function(r){return r.json()}).catch(function(){return{voices:[]}}),
+    fetch("/api/bgm-files").then(function(r){return r.json()}).catch(function(){return{builtins:[]}})
+  ]).then(function(res){
+    ST.voices=(res[0].voices)||[];
+    ST.bgms=(res[1].builtins)||[];
+    var lastVoice="";try{lastVoice=localStorage.getItem("xvideo:lastVoice")||"";}catch(e){}
+    if(ST.voices.length){var ok=ST.voices.some(function(v){return v.id===lastVoice});ST.voice=ok?lastVoice:ST.voices[0].id;}
+    if(ST.bgms.length)ST.music=ST.bgms[0].id;
+    var restored=false;
+    try{var snap=JSON.parse(localStorage.getItem(STORE_KEY)||"null");
+      if(snap&&snap.state&&(snap.state.content||snap.state.url||snap.state.jobId)){ST=Object.assign(ST,snap.state); restored=true;}
+    }catch(e){}
+    setStep(ST.step||1);
+    if(restored)toast("Đã khôi phục tiến trình đang làm");
+  });
+}
+document.addEventListener("DOMContentLoaded",initApp);
 </script>
 </body></html>

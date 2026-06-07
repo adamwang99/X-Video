@@ -7,10 +7,10 @@ Quản lý thư viện giọng: clone, upload, preview, list, delete.
 Tích hợp với VieNeu TTS và OmniVoice cho voice design.
 """
 
-import io, os, json, re, time, hashlib, shutil, threading, subprocess
+import io, os, json, re, time, hashlib, shutil, threading, subprocess, tempfile
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -65,11 +65,30 @@ class VoiceMeta(BaseModel):
 # ===== VOICE METADATA STORE =====
 def load_voices() -> dict:
     if VOICE_META_FILE.exists():
-        return json.loads(VOICE_META_FILE.read_text())
+        raw = VOICE_META_FILE.read_text()
+        if not raw.strip():
+            print(f'[WARN] voice-metadata.json is empty - starting fresh')
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as e:
+            print(f'[CRITICAL] voice-metadata.json corrupted: {e}')
+            backup = VOICE_META_FILE.with_suffix('.json.bak')
+            if backup.exists():
+                print(f'[RECOVERY] Loading from {backup}')
+                return json.loads(backup.read_text())
+            return {}
     return {}
 
 def save_voices(voices: dict):
-    VOICE_META_FILE.write_text(json.dumps(voices, indent=2, ensure_ascii=False))
+    """Atomic write: .tmp -> flush+fsync -> os.replace"""
+    tmp_path = VOICE_META_FILE.with_suffix('.json.tmp')
+    data = json.dumps(voices, indent=2, ensure_ascii=False)
+    with open(tmp_path, 'w', encoding='utf-8') as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, VOICE_META_FILE)
 
 # Initialize with built-in voices
 def init_builtin_voices():
@@ -158,40 +177,36 @@ def extract_voice_features(audio_path: Path) -> dict:
 
     return features
 
-def clone_via_vieneu(audio_path: Path, voice_name: str) -> dict:
-    """
-    Clone voice by sending audio sample to VieNeu server.
-    VieNeu uses voice design mode: send reference audio + speaker prompt.
-    """
+def clone_via_vieneu(audio_path: Path, voice_name: str, ref_text: str = "") -> dict:
+    """REAL voice clone via VieNeu clone-speech (6023)."""
     import requests
+    features = extract_voice_features(audio_path)
 
-    # Send to OmniVoice which supports voice design via 'instruct'
-    with open(audio_path, "rb") as f:
-        files = {"file": (audio_path.name, f, "audio/wav")}
-        data = {"name": voice_name, "engine": "vieneu"}
-
-        # Try OmniVoice first (has instruct/voice_design)
+    if ref_text and ref_text.strip():
         try:
+            # Generate a real clone preview via VieNeu clone-speech
+            preview_text = f"Xin chào, tôi là {voice_name}. Đây là giọng nói nhân bản."
+            payload = {
+                "input": preview_text,
+                "ref_audio_path": str(audio_path),
+                "ref_text": ref_text,
+                "response_format": "mp3"
+            }
             resp = requests.post(
-                "http://localhost:6024/v1/audio/speech",
-                json={
-                    "model": "omnivoice",
-                    "input": f"Xin chào, tôi là {voice_name}",
-                    "voice": "vi",
-                    "instruct": f"Clone this voice: {voice_name}. Match speaker identity from reference.",
-                    "response_format": "wav"
-                },
-                timeout=120
+                "http://localhost:6023/v1/audio/clone-speech",
+                json=payload, timeout=180
             )
             if resp.status_code == 200:
-                return {"success": True, "method": "omnivoice_design", "voice_name": voice_name}
+                print(f"[clone] VieNeu clone-speech OK for {voice_name}", flush=True)
+                return {"success": True, "method": "vieneu_clone", "voice_name": voice_name,
+                        "features": features, "preview_bytes": len(resp.content)}
+            else:
+                print(f"[clone] VieNeu returned {resp.status_code}: {resp.text[:80]}", flush=True)
         except Exception as e:
-            print(f"OmniVoice clone failed: {e}")
+            print(f"[clone] VieNeu clone-speech failed: {e}", flush=True)
 
-    # Fallback: extract features and store for future reference
-    features = extract_voice_features(audio_path)
     return {"success": True, "method": "feature_extraction", "features": features,
-            "note": "Voice stored with audio fingerprint. Full clone available with OmniVoice engine."}
+            "note": "Voice stored. Provide ref_text for real clone."}
 
 
 # ===== INIT =====
@@ -216,11 +231,13 @@ def get_voice(voice_id: str):
 
 @app.post("/api/voices/clone")
 async def clone_voice(
-    name: str,
     file: UploadFile = File(...),
-    engine: str = "vieneu",
-    language: str = "vi",
-    gender: str = "unknown",
+    name: str = Form(...),
+    engine: str = Form("vieneu"),
+    language: str = Form("vi"),
+    gender: str = Form("unknown"),
+    ref_text: str = Form(""),
+    region: str = Form(None),
 ):
     """Upload audio file to clone a new voice"""
     if not file.filename:
@@ -234,10 +251,43 @@ async def clone_voice(
     # Generate voice ID
     voice_id = hashlib.md5(f"{name}{datetime.now().isoformat()}".encode()).hexdigest()[:12]
 
-    # Save uploaded file
-    clone_path = CLONE_DIR / f"{voice_id}{ext}"
+    # Save uploaded file (atomic write via .partial)
     content = await file.read()
-    clone_path.write_bytes(content)
+    partial_path = CLONE_DIR / f"{voice_id}.partial{ext}"
+    clone_path = CLONE_DIR / f"{voice_id}{ext}"
+
+    # Write to .partial first
+    with open(partial_path, 'wb') as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+
+    # Verify file integrity before finalizing
+    if len(content) == 0:
+        partial_path.unlink(missing_ok=True)
+        raise HTTPException(400, "Uploaded file is empty")
+
+    # Verify audio format with ffprobe
+    try:
+        probe = subprocess.run(
+            ['/opt/homebrew/bin/ffprobe', '-v', 'quiet', '-show_entries', 'format=duration,format_name',
+             '-of', 'csv=p=0', str(partial_path)],
+            capture_output=True, text=True, timeout=15
+        )
+        if probe.returncode != 0:
+            partial_path.unlink(missing_ok=True)
+            raise HTTPException(400, "Uploaded file is not valid audio")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, Exception):
+        partial_path.unlink(missing_ok=True)
+        raise HTTPException(400, "Audio validation timed out")
+
+    # Atomic finalize
+    try:
+        os.replace(partial_path, clone_path)
+    finally:
+        # Catch-all: remove .partial if atomic rename failed
+        if partial_path.exists():
+            partial_path.unlink(missing_ok=True)
 
     # Convert to WAV if needed (for consistent processing)
     wav_path = CLONE_DIR / f"{voice_id}_ref.wav"
@@ -251,20 +301,32 @@ async def clone_voice(
         shutil.copy(clone_path, wav_path)
 
     # Clone voice
-    result = clone_via_vieneu(wav_path, name)
+    result = clone_via_vieneu(wav_path, name, ref_text)
 
-    # Generate preview sample
+    # Generate preview sample — use clone-speech if ref_text provided
     preview_path = PREVIEW_DIR / f"{voice_id}_preview.mp3"
     preview_text = f"Xin chào, tôi là {name}. Đây là giọng nói đã được tạo bởi X Video Studio của AI World."
     try:
         import requests
-        resp = requests.post(
-            "http://localhost:6023/v1/audio/speech",
-            json={"model": "vieneu", "input": preview_text, "voice": "female_south"},
-            timeout=60
-        )
-        if resp.status_code == 200:
-            preview_path.write_bytes(resp.content)
+        if ref_text and ref_text.strip() and result.get("method") == "vieneu_clone":
+            # Use clone-speech for a real preview
+            resp = requests.post(
+                "http://localhost:6023/v1/audio/clone-speech",
+                json={"input": preview_text, "ref_audio_path": str(wav_path),
+                      "ref_text": ref_text, "response_format": "mp3"},
+                timeout=120
+            )
+            if resp.status_code == 200:
+                preview_path.write_bytes(resp.content)
+        else:
+            # Fallback to regular TTS
+            resp = requests.post(
+                "http://localhost:6023/v1/audio/speech",
+                json={"model": "vieneu", "input": preview_text, "voice": "female_south", "speed": 1.0},
+                timeout=60
+            )
+            if resp.status_code == 200:
+                preview_path.write_bytes(resp.content)
     except Exception as e:
         print(f"Preview generation failed: {e}")
         # Silent preview
@@ -288,6 +350,8 @@ async def clone_voice(
         "size_bytes": len(content),
         "clone_method": result.get("method", "unknown"),
         "features": result.get("features", {}),
+        "ref_text": ref_text if ref_text else "",
+        "ref_audio_path": str(wav_path),
     }
     save_voices(voices)
 
@@ -343,23 +407,33 @@ def preview_voice(voice_id: str):
         voice = v["id"]
         lang = "vi"
 
-    # Generate via X-Video preview-voice API
-    try:
-        import requests
-        resp = requests.get(
-            "http://localhost:8767/api/preview-voice",
-            params={"voice": voice, "text": text, "language": lang},
-            timeout=60
-        )
-        if resp.status_code == 200:
-            return FileResponse(
-                io.BytesIO(resp.content),
-                media_type="audio/mp3",
-                filename=f"{voice_id}_preview.mp3"
-            )
-    except:
-        pass
-
+    # Generate via VieNeu TTS directly
+    preview_cache = PREVIEW_DIR / f"{voice_id}_preview.mp3"
+    if not preview_cache.exists() or preview_cache.stat().st_size < 1000:
+        try:
+            import requests
+            if v["engine"] == "macos":
+                import subprocess, shutil
+                aiff = PREVIEW_DIR / f"{voice_id}_tmp.aiff"
+                subprocess.run(["say", "-v", voice_id, text, "-o", str(aiff)], timeout=20)
+                subprocess.run(["/opt/homebrew/bin/ffmpeg", "-y", "-i", str(aiff),
+                    "-acodec", "libmp3lame", "-b:a", "128k", str(preview_cache)],
+                    capture_output=True, timeout=20)
+                if aiff.exists(): aiff.unlink()
+            else:
+                resp = requests.post(
+                    "http://localhost:6023/v1/audio/speech",
+                    json={"model": "vieneu", "input": text, "voice": voice_id, "speed": 1.0},
+                    timeout=120
+                )
+                if resp.status_code == 200:
+                    preview_cache.write_bytes(resp.content)
+        except Exception as e:
+            print(f"Preview generation failed for {voice_id}: {e}")
+    if preview_cache.exists() and preview_cache.stat().st_size > 100:
+        return FileResponse(str(preview_cache), media_type="audio/mp3",
+                          headers={"Content-Disposition": "inline",
+                                   "Cache-Control": "max-age=3600"})
     raise HTTPException(503, "Preview generation failed")
 
 @app.post("/api/voices/warmup")
@@ -600,3 +674,4 @@ if __name__ == "__main__":
     print(f"   API: http://0.0.0.0:8769")
     print(f"   Voices: {len(load_voices())} total")
     uvicorn.run(app, host="0.0.0.0", port=8769)
+

@@ -1,0 +1,726 @@
+[
+  {
+    "id": "frame-takram-organic",
+    "name": "Takram Organic",
+    "category": "explainer",
+    "best_for": [],
+    "tags": [
+      "organic",
+      "soft-tech",
+      "radial",
+      "node-graph",
+      "takram",
+      "beige",
+      "diagram"
+    ],
+    "aspects": [
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "caption": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "eyebrow": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "dmin": 4.0,
+    "dmax": 7.0
+  },
+  {
+    "id": "frame-data-chart-nyt",
+    "name": "NYT Data Chart",
+    "category": "data-viz",
+    "best_for": [],
+    "tags": [
+      "chart",
+      "bar",
+      "data",
+      "nyt",
+      "journalism",
+      "number-counter"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      },
+      "data": {
+        "type": "string",
+        "maxLength": 180
+      }
+    },
+    "required": [
+      "title",
+      "data"
+    ],
+    "dmin": 5.0,
+    "dmax": 20.0
+  },
+  {
+    "id": "vfx-text-cursor",
+    "name": "Text + Cursor VFX",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "text",
+      "typewriter",
+      "cursor",
+      "terminal",
+      "code",
+      "reveal"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "text": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "dmin": 3.0,
+    "dmax": 10.0
+  },
+  {
+    "id": "frame-logo-outro",
+    "name": "Logo Outro Frame",
+    "category": "intro-outro",
+    "best_for": [],
+    "tags": [
+      "logo",
+      "outro",
+      "branding",
+      "end-card",
+      "frame",
+      "glow"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "tagline": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "brand_name"
+    ],
+    "dmin": 3.0,
+    "dmax": 10.0
+  },
+  {
+    "id": "frame-swiss-grid",
+    "name": "Swiss Grid",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "swiss",
+      "grid",
+      "minimal",
+      "corporate",
+      "typography"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-glitch-title",
+    "name": "Glitch Title",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "title",
+      "glitch",
+      "cyberpunk",
+      "rgb-shift",
+      "tech",
+      "scanline"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "dmin": 3.0,
+    "dmax": 8.0
+  },
+  {
+    "id": "frame-nyt-graph",
+    "name": "NYT Graph",
+    "category": "data-viz",
+    "best_for": [],
+    "tags": [
+      "data",
+      "chart",
+      "editorial",
+      "nyt",
+      "line-graph"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-pentagram-stat",
+    "name": "Pentagram Stat",
+    "category": "data-viz",
+    "best_for": [],
+    "tags": [
+      "stat",
+      "swiss-grid",
+      "editorial",
+      "data",
+      "pentagram",
+      "number",
+      "benchmark"
+    ],
+    "aspects": [
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "headline": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "headline"
+    ],
+    "dmin": 3.0,
+    "dmax": 6.0
+  },
+  {
+    "id": "frame-product-promo-30s",
+    "name": "Product Promo · 30s",
+    "category": "product-demo",
+    "best_for": [],
+    "tags": [
+      "product",
+      "promo",
+      "multi-scene",
+      "30s",
+      "benefits",
+      "flowchart",
+      "sfx"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 25.0,
+    "dmax": 35.0
+  },
+  {
+    "id": "frame-electric-studio",
+    "name": "Electric Studio",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "split-panel",
+      "quote",
+      "blue",
+      "high-contrast",
+      "studio",
+      "editorial"
+    ],
+    "aspects": [
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "role": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      },
+      "quote_lines": {
+        "type": "string",
+        "maxLength": 180
+      }
+    },
+    "required": [
+      "quote_lines"
+    ],
+    "dmin": 3.0,
+    "dmax": 6.0
+  },
+  {
+    "id": "frame-liquid-bg-hero",
+    "name": "Liquid Background Hero",
+    "category": "marketing",
+    "best_for": [],
+    "tags": [
+      "hero",
+      "liquid",
+      "gradient",
+      "mesh",
+      "editorial",
+      "cover"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "headline": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subheadline": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "headline"
+    ],
+    "dmin": 4.0,
+    "dmax": 12.0
+  },
+  {
+    "id": "frame-bold-signal",
+    "name": "Bold Signal",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "bold",
+      "card",
+      "dark",
+      "orange",
+      "section",
+      "signal",
+      "high-impact"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "section": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "dmin": 3.0,
+    "dmax": 6.0
+  },
+  {
+    "id": "frame-kinetic-type",
+    "name": "Kinetic Type",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "kinetic",
+      "typography",
+      "promo",
+      "bold",
+      "motion-text"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-bold-poster",
+    "name": "Bold Poster",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "poster",
+      "editorial",
+      "bold",
+      "serif",
+      "red",
+      "print",
+      "manifesto",
+      "tilted",
+      "high-impact"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "headline": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "standfirst": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "kicker": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "headline"
+    ],
+    "dmin": 4.0,
+    "dmax": 6.0
+  },
+  {
+    "id": "frame-warm-grain",
+    "name": "Warm Grain",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "lifestyle",
+      "warm",
+      "grain",
+      "cream",
+      "editorial"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-play-mode",
+    "name": "Play Mode",
+    "category": "social-shorts",
+    "best_for": [],
+    "tags": [
+      "playful",
+      "elastic",
+      "fun",
+      "bouncy",
+      "social"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-vignelli",
+    "name": "Vignelli",
+    "category": "social-shorts",
+    "best_for": [],
+    "tags": [
+      "vignelli",
+      "red",
+      "bold",
+      "portrait",
+      "9:16"
+    ],
+    "aspects": [
+      "9:16"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-decision-tree",
+    "name": "Decision Tree",
+    "category": "explainer",
+    "best_for": [],
+    "tags": [
+      "explainer",
+      "flowchart",
+      "decision",
+      "branching",
+      "diagram"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "frame-creative-voltage",
+    "name": "Creative Voltage",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "split-panel",
+      "electric",
+      "script",
+      "retro-modern",
+      "voltage",
+      "energetic"
+    ],
+    "aspects": [
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "caption": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "script": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      },
+      "display_lines": {
+        "type": "string",
+        "maxLength": 180
+      }
+    },
+    "required": [
+      "display_lines"
+    ],
+    "dmin": 3.0,
+    "dmax": 6.0
+  },
+  {
+    "id": "frame-light-leak-cinema",
+    "name": "Light Leak Cinema",
+    "category": "ambient",
+    "best_for": [],
+    "tags": [
+      "cinema",
+      "light-leak",
+      "film",
+      "35mm",
+      "grain",
+      "lens-flare"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "dmin": 4.0,
+    "dmax": 10.0
+  },
+  {
+    "id": "frame-build-minimal",
+    "name": "Build Minimal",
+    "category": "presentation",
+    "best_for": [],
+    "tags": [
+      "minimal",
+      "luxury",
+      "whitespace",
+      "hero",
+      "gold",
+      "build",
+      "thin"
+    ],
+    "aspects": [
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "hero": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "desc": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "eyebrow": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "hero"
+    ],
+    "dmin": 4.0,
+    "dmax": 7.0
+  },
+  {
+    "id": "frame-product-promo",
+    "name": "Product Promo",
+    "category": "product-demo",
+    "best_for": [],
+    "tags": [
+      "product",
+      "promo",
+      "multi-scene",
+      "showcase",
+      "svg"
+    ],
+    "aspects": [
+      "16:9"
+    ],
+    "schema": {},
+    "required": [],
+    "dmin": 3.0,
+    "dmax": 30.0
+  },
+  {
+    "id": "aiw-premium-cinematic",
+    "name": "AIW Premium Cinematic",
+    "category": "premium",
+    "best_for": [],
+    "tags": [
+      "premium",
+      "cinematic",
+      "reel",
+      "dark",
+      "portrait",
+      "aiworld",
+      "news"
+    ],
+    "aspects": [
+      "9:16",
+      "16:9",
+      "1:1"
+    ],
+    "schema": {
+      "title": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "kicker": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "image_url": {
+        "type": "string",
+        "maxLength": 180
+      },
+      "duration_sec": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "title"
+    ],
+    "dmin": 4.0,
+    "dmax": 12.0
+  }
+]

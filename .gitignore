@@ -26,3 +26,22 @@ Thumbs.db
 *.aiff
 temp/
 script.txt
+
+# Rust build artifacts
+src-tauri/target/
+
+# Backups
+*.bak
+*.bak.*
+
+# DMG bundles (distributed separately)
+*.dmg
+*.backup*
+*.before_*
+*bak
+# Catch-all backup variants
+*.bak*
+*.backup*
+*.before*
+*_bak*
+*bak_*

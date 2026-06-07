@@ -1,6 +1,6 @@
 {
   "productName": "X-Video Studio",
-  "version": "1.5.9",
+  "version": "1.28.3",
   "identifier": "com.aiworld.xvideo",
   "build": {
     "frontendDist": "../frontend"
@@ -23,7 +23,15 @@
     "resources": [
       "../backend/server.py",
       "../backend/voice_library.py",
-      "../requirements.txt"
+      "../backend/xvideo_scenes.py",
+      "../backend/xvideo_storyboard.py",
+      "../backend/xvideo_pexels.py",
+      "../backend/xvideo_apikeys.py",
+      "../requirements.txt",
+      "../backend/xvideo_scene_analyzer.py",
+      "../backend/xvideo_scene_templates.py",
+      "../backend/xvideo_hv.py",
+      "../backend/hv_templates_catalog.json"
     ],
     "macOS": {
       "minimumSystemVersion": "14.0"

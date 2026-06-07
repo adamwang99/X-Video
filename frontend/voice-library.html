@@ -161,6 +161,16 @@ body{background:#121318;color:#e3e1e9;min-height:100vh;padding:0}
 
 .empty{text-align:center;padding:32px;color:#869396;font-size:12px}
 </style>
+<!--Soften X-->
+<style>
+.rounded{border-radius:12px !important}
+.rounded-lg{border-radius:14px !important}
+.rounded-xl{border-radius:18px !important}
+.rounded-full{border-radius:9999px !important}
+.glass-input,select.glass-input{border-radius:12px !important}
+button{border-radius:12px}
+.alert{border-radius:12px !important}
+</style>
 </head>
 <body>
 
@@ -336,6 +346,10 @@ body{background:#121318;color:#e3e1e9;min-height:100vh;padding:0}
               <option value="male">♂ Nam</option>
             </select>
           </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Lời trong file mẫu (bắt buộc để clone chuẩn)</label>
+          <textarea id="cloneRefText" class="form-input" rows="2" placeholder="Dán nội dung lời nói trong file audio mẫu vào đây..."></textarea>
         </div>
         <div class="progress-mini" id="cloneProgress"><div class="progress-mini-fill" id="cloneProgressFill"></div></div>
         <div class="msg" id="cloneMsg"></div>
@@ -597,6 +611,8 @@ async function doUpload(){
   fd.append('engine','vieneu');
   fd.append('language',lang);
   fd.append('gender',gender);
+  var refText=document.getElementById('cloneRefText').value.trim();
+  if(refText)fd.append('ref_text',refText);
   if(region)fd.append('region',region);
 
   try{

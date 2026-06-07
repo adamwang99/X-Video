@@ -10,7 +10,7 @@ Tích hợp với VieNeu TTS và OmniVoice cho voice design.
 import io, os, json, re, time, hashlib, shutil, threading, subprocess, tempfile
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -177,40 +177,36 @@ def extract_voice_features(audio_path: Path) -> dict:
 
     return features
 
-def clone_via_vieneu(audio_path: Path, voice_name: str) -> dict:
-    """
-    Clone voice by sending audio sample to VieNeu server.
-    VieNeu uses voice design mode: send reference audio + speaker prompt.
-    """
+def clone_via_vieneu(audio_path: Path, voice_name: str, ref_text: str = "") -> dict:
+    """REAL voice clone via VieNeu clone-speech (6023)."""
     import requests
+    features = extract_voice_features(audio_path)
 
-    # Send to OmniVoice which supports voice design via 'instruct'
-    with open(audio_path, "rb") as f:
-        files = {"file": (audio_path.name, f, "audio/wav")}
-        data = {"name": voice_name, "engine": "vieneu"}
-
-        # Try OmniVoice first (has instruct/voice_design)
+    if ref_text and ref_text.strip():
         try:
+            # Generate a real clone preview via VieNeu clone-speech
+            preview_text = f"Xin chào, tôi là {voice_name}. Đây là giọng nói nhân bản."
+            payload = {
+                "input": preview_text,
+                "ref_audio_path": str(audio_path),
+                "ref_text": ref_text,
+                "response_format": "mp3"
+            }
             resp = requests.post(
-                "http://localhost:6024/v1/audio/speech",
-                json={
-                    "model": "omnivoice",
-                    "input": f"Xin chào, tôi là {voice_name}",
-                    "voice": "vi",
-                    "instruct": f"Clone this voice: {voice_name}. Match speaker identity from reference.",
-                    "response_format": "wav"
-                },
-                timeout=120
+                "http://localhost:6023/v1/audio/clone-speech",
+                json=payload, timeout=180
             )
             if resp.status_code == 200:
-                return {"success": True, "method": "omnivoice_design", "voice_name": voice_name}
+                print(f"[clone] VieNeu clone-speech OK for {voice_name}", flush=True)
+                return {"success": True, "method": "vieneu_clone", "voice_name": voice_name,
+                        "features": features, "preview_bytes": len(resp.content)}
+            else:
+                print(f"[clone] VieNeu returned {resp.status_code}: {resp.text[:80]}", flush=True)
         except Exception as e:
-            print(f"OmniVoice clone failed: {e}")
+            print(f"[clone] VieNeu clone-speech failed: {e}", flush=True)
 
-    # Fallback: extract features and store for future reference
-    features = extract_voice_features(audio_path)
     return {"success": True, "method": "feature_extraction", "features": features,
-            "note": "Voice stored with audio fingerprint. Full clone available with OmniVoice engine."}
+            "note": "Voice stored. Provide ref_text for real clone."}
 
 
 # ===== INIT =====
@@ -235,11 +231,13 @@ def get_voice(voice_id: str):
 
 @app.post("/api/voices/clone")
 async def clone_voice(
-    name: str,
     file: UploadFile = File(...),
-    engine: str = "vieneu",
-    language: str = "vi",
-    gender: str = "unknown",
+    name: str = Form(...),
+    engine: str = Form("vieneu"),
+    language: str = Form("vi"),
+    gender: str = Form("unknown"),
+    ref_text: str = Form(""),
+    region: str = Form(None),
 ):
     """Upload audio file to clone a new voice"""
     if not file.filename:
@@ -284,6 +282,7 @@ async def clone_voice(
         raise HTTPException(400, "Audio validation timed out")
 
     # Atomic finalize
+    try:
         os.replace(partial_path, clone_path)
     finally:
         # Catch-all: remove .partial if atomic rename failed
@@ -302,20 +301,32 @@ async def clone_voice(
         shutil.copy(clone_path, wav_path)
 
     # Clone voice
-    result = clone_via_vieneu(wav_path, name)
+    result = clone_via_vieneu(wav_path, name, ref_text)
 
-    # Generate preview sample
+    # Generate preview sample — use clone-speech if ref_text provided
     preview_path = PREVIEW_DIR / f"{voice_id}_preview.mp3"
     preview_text = f"Xin chào, tôi là {name}. Đây là giọng nói đã được tạo bởi X Video Studio của AI World."
     try:
         import requests
-        resp = requests.post(
-            "http://localhost:6023/v1/audio/speech",
-            json={"model": "vieneu", "input": preview_text, "voice": voice_id},
-            timeout=60
-        )
-        if resp.status_code == 200:
-            preview_path.write_bytes(resp.content)
+        if ref_text and ref_text.strip() and result.get("method") == "vieneu_clone":
+            # Use clone-speech for a real preview
+            resp = requests.post(
+                "http://localhost:6023/v1/audio/clone-speech",
+                json={"input": preview_text, "ref_audio_path": str(wav_path),
+                      "ref_text": ref_text, "response_format": "mp3"},
+                timeout=120
+            )
+            if resp.status_code == 200:
+                preview_path.write_bytes(resp.content)
+        else:
+            # Fallback to regular TTS
+            resp = requests.post(
+                "http://localhost:6023/v1/audio/speech",
+                json={"model": "vieneu", "input": preview_text, "voice": "female_south", "speed": 1.0},
+                timeout=60
+            )
+            if resp.status_code == 200:
+                preview_path.write_bytes(resp.content)
     except Exception as e:
         print(f"Preview generation failed: {e}")
         # Silent preview
@@ -339,6 +350,8 @@ async def clone_voice(
         "size_bytes": len(content),
         "clone_method": result.get("method", "unknown"),
         "features": result.get("features", {}),
+        "ref_text": ref_text if ref_text else "",
+        "ref_audio_path": str(wav_path),
     }
     save_voices(voices)
 

@@ -1,0 +1,339 @@
+<!doctype html>
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>X-Video Studio</title>
+<link rel="icon" type="image/png" href="/static/logo-xvideo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "tertiary":"#00daf3","primary-fixed-dim":"#44d8f1","error":"#ffb4ab","secondary-container":"#592aa9","surface-variant":"#34343a","on-primary-container":"#004650","on-error":"#690005","on-surface":"#e3e1e9","on-tertiary-fixed":"#001f24","on-tertiary":"#00363d","outline-variant":"#3c494c","inverse-surface":"#e3e1e9","on-secondary":"#3f008d","on-primary-fixed":"#001f25","surface":"#121318","surface-container-high":"#292a2f","on-secondary-container":"#c7aaff","on-secondary-fixed":"#250059","secondary":"#d3bbff","on-primary-fixed-variant":"#004e59","surface-container-highest":"#34343a","on-tertiary-container":"#00464f","on-primary":"#00363e","primary-fixed":"#a1efff","tertiary-container":"#00bcd2","primary-container":"#00bcd4","surface-dim":"#121318","on-tertiary-fixed-variant":"#004f58","tertiary-fixed":"#9cf0ff","error-container":"#93000a","secondary-fixed-dim":"#d3bbff","surface-bright":"#38393f","inverse-on-surface":"#2f3036","surface-container-lowest":"#0d0e13","secondary-fixed":"#ebddff","outline":"#869396","on-background":"#e3e1e9","primary":"#44d8f1","on-surface-variant":"#bbc9cc","inverse-primary":"#006876","tertiary-fixed-dim":"#00daf3","on-error-container":"#ffdad6","on-secondary-fixed-variant":"#5727a6","background":"#121318","surface-tint":"#44d8f1","surface-container":"#1e1f25","surface-container-low":"#1a1b21"
+        },
+        borderRadius: {"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},
+        spacing: {"lg":"48px","margin-mobile":"16px","sm":"12px","xs":"4px","margin-desktop":"48px","md":"24px","gutter":"24px","base":"8px","xl":"80px"},
+        fontFamily: {"body-lg":["Inter"],"label-md":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"code-sm":["Inter"],"display-lg-mobile":["Inter"],"headline-lg":["Inter"],"display-lg":["Inter"]},
+        fontSize: {
+          "body-lg":["18px",{lineHeight:"1.6",fontWeight:"400"}],
+          "label-md":["14px",{lineHeight:"1.2",letterSpacing:"0.05em",fontWeight:"500"}],
+          "headline-md":["24px",{lineHeight:"1.3",fontWeight:"600"}],
+          "body-md":["16px",{lineHeight:"1.5",fontWeight:"400"}],
+          "code-sm":["13px",{lineHeight:"1.4",fontWeight:"400"}],
+          "display-lg-mobile":["36px",{lineHeight:"1.2",letterSpacing:"-0.02em",fontWeight:"700"}],
+          "headline-lg":["32px",{lineHeight:"1.2",fontWeight:"600"}],
+          "display-lg":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"700"}]
+        }
+      }
+    }
+  }
+</script>
+<style>
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+    @font-face{font-family:Inter;src:url(/static/fonts/Inter-ExtraBold.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap}
+
+    body { background-color: #121318; color: #e3e1e9; overflow-x: hidden; }
+
+    .glass-panel {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px; overflow: hidden;
+    }
+    .glass-card-inner-glow { position: relative; }
+    .glass-card-inner-glow::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      z-index: 10; pointer-events: none;
+    }
+    .neon-glow-primary { box-shadow: 0 0 15px rgba(0,188,212,0.5); }
+
+    .aurora-orb-1 { position: fixed; top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(0,188,212,0.15) 0%, rgba(0,0,0,0) 70%); z-index: -1; pointer-events: none; }
+    .aurora-orb-2 { position: fixed; bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(103,58,183,0.15) 0%, rgba(0,0,0,0) 70%); z-index: -1; pointer-events: none; }
+
+    /* Preview area */
+    .player-placeholder {
+      width: 100%; max-height: 65vh; aspect-ratio: 9/16;
+      background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: #bbc9cc; font-size: 12px; flex-direction: column; gap: 6px;
+    }
+    video { width: 100%; max-height: 100%; border-radius: 12px; display: block; }
+
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 13px; font-weight: 800; color: #44d8f1; }
+    .stat-label { font-size: 9px; color: #bbc9cc; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(148,163,184,0.15); border-top-color: #44d8f1; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+
+    .help-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
+    .help-overlay.on { display: flex; }
+
+    .glass-input {
+      width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      color: #e3e1e9; font-size: 13px; font-family: Inter, sans-serif;
+      outline: none; transition: border 0.2s;
+    }
+    .glass-input:focus { border-color: #44d8f1; box-shadow: 0 0 8px rgba(0,188,212,0.15); }
+    .glass-input::placeholder { color: #869396; }
+
+    select.glass-input { -webkit-appearance: none; padding-right: 28px; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2344d8f1' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+
+    textarea.glass-input { resize: none; min-height: 40px; line-height: 1.4; }
+
+    details summary { cursor: pointer; color: #44d8f1; font-size: 12px; font-weight: 600; }
+    details summary::-webkit-details-marker { color: #44d8f1; }
+
+    .select-list { max-height: 120px; overflow-y: auto; }
+    .select-list::-webkit-scrollbar { width: 2px; }
+    .select-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+
+    .select-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #bbc9cc; transition: all 0.1s; }
+    .select-item:hover { background: rgba(255,255,255,0.04); color: #e3e1e9; }
+    .select-item.on { background: linear-gradient(135deg, rgba(0,188,212,0.12), rgba(68,216,241,0.06)); border: 1px solid rgba(68,216,241,0.15); color: #e3e1e9; }
+    .select-item .play-btn { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #869396; font-size: 7px; flex-shrink: 0; }
+    .select-item .play-btn:hover { border-color: rgba(0,188,212,0.25); color: #44d8f1; }
+
+    .alert { border-radius: 8px; padding: 6px 10px; font-size: 11px; display: none; margin: 4px 0; }
+    .alert.on { display: flex; align-items: center; gap: 6px; }
+    .alert-error { background: rgba(255,180,171,0.08); color: #ffb4ab; border: 1px solid rgba(255,180,171,0.18); }
+    .alert-ok { background: rgba(68,216,241,0.06); color: #44d8f1; border: 1px solid rgba(68,216,241,0.15); }
+
+    .btn-shine { position: relative; overflow: hidden; }
+    .btn-shine::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.3), rgba(255,255,255,0)); transform: skewX(-25deg); animation: shine 2.1s infinite; }
+
+    .progress-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(68,216,241,0.08); border-radius: 8px; padding: 8px; display: none; }
+    .progress-box.on { display: block; margin-top: 8px; }
+    .progress-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.03); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #00bcd4, #44d8f1); transition: width 0.3s; }
+    .progress-text { font-size: 10px; color: #bbc9cc; text-align: center; margin-top: 4px; }
+
+    /* FIX: style card active state */
+    .style-card.active { border: 1px solid rgba(68,216,241,0.5); background: rgba(68,216,241,0.06); }
+
+    /* FIX: input mode toggle */
+    .input-mode-btn { font-size: 11px; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); color: #bbc9cc; background: transparent; transition: all 0.15s; }
+    .input-mode-btn.active { border-color: rgba(68,216,241,0.4); color: #44d8f1; background: rgba(68,216,241,0.08); }
+
+    /* TTS loading overlay */
+    #ttsOverlay { position: fixed; inset: 0; z-index: 9999; background: rgba(10,10,20,0.92); backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    #ttsOverlay.hidden { display: none; }
+    .tts-spinner { width: 48px; height: 48px; border: 3px solid rgba(68,216,241,0.15); border-top-color: #44d8f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tts-status-text { font-size: 15px; color: #e3e1e9; font-weight: 600; text-align: center; }
+    .tts-detail-text { font-size: 12px; color: #bbc9cc; text-align: center; max-width: 280px; line-height: 1.5; }
+    .tts-dots { display: flex; gap: 6px; }
+    .tts-dots span { width: 8px; height: 8px; border-radius: 50%; background: #44d8f1; animation: tts-dot 1.2s infinite; }
+    .tts-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .tts-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tts-dot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.1); } }
+.step-dot{color:#bbc9cc;font-weight:500;transition:color .2s}
+</style>
+<!--Soften X-->
+<style>
+.rounded{border-radius:12px !important}
+.rounded-lg{border-radius:14px !important}
+.rounded-xl{border-radius:18px !important}
+.rounded-full{border-radius:9999px !important}
+.glass-input,select.glass-input{border-radius:12px !important}
+button{border-radius:12px}
+.alert{border-radius:12px !important}
+</style>
+</head>
+<body class="antialiased min-h-screen flex selection:bg-primary selection:text-on-primary">
+<div class="aurora-orb-1"></div>
+<div class="aurora-orb-2"></div>
+
+<nav aria-label="Sidebar" class="hidden md:flex flex-col h-screen w-64 border-r border-white/20 bg-white/5 flex-shrink-0">
+  <div class="p-md border-b border-white/10">
+    <h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight flex items-center gap-sm"><img src="/static/logo-xvideo.png" class="w-8 h-8 rounded-lg object-contain" alt="X">X-Video</h1>
+    <p class="font-label-md text-label-md text-on-surface-variant mt-xs">AI World Studio</p>
+  </div>
+  <ul class="flex-1 p-sm flex flex-col gap-1">
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors" href="/">🎬<span class="font-label-md text-label-md">Tạo Video</span></a></li>
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-on-surface-variant hover:bg-white/10 transition-colors" href="/voice-library.html">🎤<span class="font-label-md text-label-md">Thư viện giọng</span></a></li>
+    <li><a class="flex items-center gap-sm px-sm py-sm rounded text-primary font-bold border-r-2 border-primary bg-white/5" href="/apikeys.html">🔑<span class="font-label-md text-label-md">API Keys</span></a></li>
+  </ul>
+</nav>
+
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+  <header class="flex justify-between items-center px-md h-14 border-b border-white/20 bg-white/5 flex-shrink-0">
+    <span class="text-[13px] font-bold text-on-surface">Quản lý API Keys</span>
+    <a href="/" class="text-[11px] px-3 py-1 rounded border border-white/15 text-on-surface-variant hover:bg-white/10">← Tạo Video</a>
+  </header>
+  <main class="flex-1 overflow-y-auto p-md">
+    <div class="max-w-3xl mx-auto">
+      <div class="glass-panel rounded-xl p-md glass-card-inner-glow mb-md">
+        <div class="flex items-center justify-between mb-sm">
+          <h2 class="text-headline-md font-bold text-on-surface">🧠 LLM viết lại &amp; phân cảnh</h2>
+          <button onclick="testLlm()" class="px-3 py-1 rounded text-[11px] border border-white/15 hover:bg-white/10">⚡ Test LLM</button>
+        </div>
+        <p class="text-[12px] text-on-surface-variant mb-3">Chọn nhà cung cấp LLM dùng để viết lại lời đọc và chia phân cảnh. Local chạy offline; các provider khác cần nhập key ở khung dưới.</p>
+        <div class="flex flex-col gap-2">
+          <div class="flex gap-2 items-center">
+            <label class="text-[12px]" style="width:90px;color:#869396">Provider</label>
+            <select id="llmProvider" class="glass-input" style="flex:1;font-size:12px" onchange="onLlmProviderChange()"></select>
+          </div>
+          <div class="flex gap-2 items-center">
+            <label class="text-[12px]" style="width:90px;color:#869396">Model</label>
+            <input id="llmModel" class="glass-input" placeholder="vd: gpt-4o-mini / gemini-2.0-flash / deepseek-chat (để trống = mặc định)" style="flex:1;font-size:12px">
+          </div>
+          <div class="flex gap-2 items-center" id="llmBaseRow" style="display:none">
+            <label class="text-[12px]" style="width:90px;color:#869396">Base URL</label>
+            <input id="llmBaseUrl" class="glass-input" placeholder="vd: https://api.9router.com/v1" style="flex:1;font-size:12px;font-family:monospace">
+          </div>
+          <div class="flex gap-2 justify-end">
+            <button onclick="saveLlm()" class="px-4 py-1 rounded-lg bg-primary text-black font-bold text-[12px] hover:bg-primary-fixed">Lưu lựa chọn</button>
+          </div>
+        </div>
+      </div>
+      <div class="glass-panel rounded-xl p-md glass-card-inner-glow">
+        <div class="flex items-center justify-between mb-sm">
+          <h2 class="text-headline-md font-bold text-on-surface">🔑 API Keys</h2>
+          <select id="apiProvider" class="glass-input" style="width:auto;font-size:12px" onchange="loadKeys()">
+            <option value="pexels">Pexels (ảnh/video)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="openai_compatible">OpenAI-compatible proxy</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="9router">9Router</option>
+          </select>
+        </div>
+        <p class="text-[12px] text-on-surface-variant mb-4">Thêm nhiều key cho 1 dịch vụ. Khi 1 key lỗi (hết hạn mức / 403 / 429) hệ thống tự chuyển sang key kế tiếp.</p>
+        <div class="flex gap-2 mb-4">
+          <input id="newKeyVal" class="glass-input" placeholder="Dán API key mới..." style="flex:2;font-size:12px">
+          <input id="newKeyLabel" class="glass-input" placeholder="Nhãn (vd: Key chính)" style="flex:1;font-size:12px">
+          <button onclick="addKey()" class="px-4 rounded-lg bg-primary text-black font-bold text-[12px] hover:bg-primary-fixed" style="white-space:nowrap">+ Thêm</button>
+        </div>
+        <div id="keyList" class="flex flex-col gap-2"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+function $(id){return document.getElementById(id);}
+function escH(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function apiProv(){return $("apiProvider").value;}
+function toast(m,e){var t=$("tt");if(!t){t=document.createElement("div");t.id="tt";t.style.cssText="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;backdrop-filter:blur(10px)";document.body.appendChild(t);}t.style.background=e?"rgba(255,141,161,.18)":"rgba(94,227,161,.18)";t.style.border="1px solid "+(e?"rgba(255,141,161,.5)":"rgba(94,227,161,.5)");t.style.color=e?"#ffb4ab":"#5ee3a1";t.textContent=m;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(function(){t.style.display="none";},4000);}
+function loadKeys(){
+  fetch("/api/keys?provider="+apiProv()).then(function(r){return r.json()}).then(function(d){
+    var prov=apiProv();var keys=(d.providers&&d.providers[prov])||[];
+    KEYS=keys;
+    var box=$("keyList");
+    if(!keys.length){box.innerHTML='<div class="text-[12px] text-on-surface-variant py-4 text-center">Chưa có key nào.</div>';return;}
+    box.innerHTML=keys.map(function(k){
+      var col=k.status==="active"?"#5ee3a1":(k.status==="failed"?"#ff8da1":"#ffcf66");
+      var st=k.status==="active"?"Hoạt động":(k.status==="failed"?"Lỗi":k.status);
+      return '<div class="flex items-center gap-2 p-2 rounded-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">'+
+        '<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0"></span>'+
+        '<div style="flex:1;min-width:0"><div class="text-[12px] font-semibold" style="color:#e3e1e9">'+escH(k.label||"(không nhãn)")+'</div>'+
+        '<div class="text-[10px]" style="color:#869396;font-family:monospace">'+escH(k.masked)+' · '+st+(k.last_test?(" · "+k.last_test):"")+(k.fail_count?(" · lỗi "+k.fail_count+"x"):"")+'</div></div>'+
+        '<button onclick="editKey(\''+k.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">✏ Sua</button>'+
+        '<button onclick="testKey(\''+k.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">✓ Test</button>'+
+        '<button onclick="delKey(\''+k.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10" style="color:#ff8da1">🗑</button></div>';
+    }).join("");
+  }).catch(function(e){toast("Lỗi tải: "+e.message,1)});
+}
+function addKey(){
+  var v=$("newKeyVal").value.trim(),l=$("newKeyLabel").value.trim();
+  if(!v)return toast("Dán API key",1);
+  fetch("/api/keys/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:apiProv(),key:v,label:l})})
+    .then(function(r){return r.json()}).then(function(d){if(d.error)throw new Error(d.error);$("newKeyVal").value="";$("newKeyLabel").value="";toast("Đã thêm, bấm Test");loadKeys();}).catch(function(e){toast("Lỗi: "+e.message,1)});
+}
+function testKey(id){
+  toast("Đang test...");
+  fetch("/api/keys/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:apiProv(),id:id})})
+    .then(function(r){return r.json()}).then(function(d){toast((d.success?"✅ ":"❌ ")+(d.detail||""),!d.success);loadKeys();}).catch(function(e){toast("Lỗi: "+e.message,1)});
+}
+function delKey(id){
+  fetch("/api/keys/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:apiProv(),id:id})})
+    .then(function(r){return r.json()}).then(function(){toast("Đã xóa");loadKeys();}).catch(function(e){toast("Lỗi: "+e.message,1)});
+}
+var KEYS=[];
+function editKey(id){
+  var box=$("keyList");
+  box.innerHTML=KEYS.map(function(x){
+    if(x.id===id){
+      return '<div class="flex flex-col gap-2 p-2 rounded-lg" style="background:rgba(68,216,241,.06);border:1px solid rgba(68,216,241,.4)">'+
+        '<input id="edLabel_'+x.id+'" class="glass-input" placeholder="Nhan" value="'+escH(x.label||"")+'" style="font-size:12px">'+
+        '<input id="edKey_'+x.id+'" class="glass-input" placeholder="Dan key moi (de trong = giu nguyen)" style="font-size:12px;font-family:monospace">'+
+        '<div class="flex gap-2 justify-end">'+
+          '<button onclick="saveKey(\''+x.id+'\')" class="px-3 py-1 rounded text-[11px] bg-primary text-black font-bold">Luu</button>'+
+          '<button onclick="loadKeys()" class="px-3 py-1 rounded text-[11px] border border-white/15 hover:bg-white/10">Huy</button>'+
+        '</div></div>';
+    }
+    var col=x.status==="active"?"#5ee3a1":(x.status==="failed"?"#ff8da1":"#ffcf66");
+    var st=x.status==="active"?"Hoat dong":(x.status==="failed"?"Loi":x.status);
+    return '<div class="flex items-center gap-2 p-2 rounded-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">'+
+      '<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0"></span>'+
+      '<div style="flex:1;min-width:0"><div class="text-[12px] font-semibold" style="color:#e3e1e9">'+escH(x.label||"(khong nhan)")+'</div>'+
+      '<div class="text-[10px]" style="color:#869396;font-family:monospace">'+escH(x.masked)+' \u00b7 '+st+'</div></div>'+
+      '<button onclick="editKey(\''+x.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">\u270f Sua</button>'+
+      '<button onclick="testKey(\''+x.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10">\u2713 Test</button>'+
+      '<button onclick="delKey(\''+x.id+'\')" class="px-2 py-1 rounded text-[10px] border border-white/15 hover:bg-white/10" style="color:#ff8da1">\U0001f5d1</button></div>';
+  }).join("");
+}
+function saveKey(id){
+  var lbl=$("edLabel_"+id),kv=$("edKey_"+id);
+  var body={provider:apiProv(),id:id,label:lbl?lbl.value.trim():""};
+  if(kv&&kv.value.trim())body.key=kv.value.trim();
+  fetch("/api/keys/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(d){if(d.error)throw new Error(d.error);toast("Da luu");loadKeys();}).catch(function(e){toast("Loi: "+e.message,1)});
+}
+var LLM_PROVIDERS=[];
+function loadLlmProviders(){
+  return fetch("/api/llm/providers").then(function(r){return r.json()}).then(function(d){
+    LLM_PROVIDERS=(d.providers||[]);
+    var sel=$("llmProvider");
+    sel.innerHTML=LLM_PROVIDERS.map(function(p){return '<option value="'+p.id+'">'+escH(p.label)+'</option>';}).join("");
+  });
+}
+function curLlmProvider(){return $("llmProvider").value;}
+function onLlmProviderChange(){
+  var p=LLM_PROVIDERS.filter(function(x){return x.id===curLlmProvider()})[0]||{};
+  $("llmBaseRow").style.display=p.needs_base_url?"flex":"none";
+  // Tránh lỗi chọn LLM provider nhưng key list vẫn ở provider khác.
+  if(curLlmProvider()!=="local_ollama" && $("apiProvider") && $("apiProvider").value!==curLlmProvider()){
+    $("apiProvider").value=curLlmProvider();
+    loadKeys();
+  }
+}
+function loadSettings(){
+  return fetch("/api/settings").then(function(r){return r.json()}).then(function(d){
+    if(d.llm_provider)$("llmProvider").value=d.llm_provider;
+    $("llmModel").value=d.llm_model||"";
+    $("llmBaseUrl").value=d.llm_base_url||"";
+    onLlmProviderChange();
+  });
+}
+function saveLlm(){
+  var body={llm_provider:curLlmProvider(),llm_model:$("llmModel").value.trim(),llm_base_url:$("llmBaseUrl").value.trim()};
+  fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(){toast("Đã lưu lựa chọn LLM");}).catch(function(e){toast("Lỗi: "+e.message,1)});
+}
+function testLlm(){
+  toast("Đang lưu + test LLM...");
+  var body={llm_provider:curLlmProvider(),llm_model:$("llmModel").value.trim(),llm_base_url:$("llmBaseUrl").value.trim()};
+  // Lưu trước để "test cái gì = app chạy cái đó", tránh test 1 đằng chạy 1 nẻo.
+  fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(){
+      return fetch("/api/llm/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    }).then(function(r){return r.json()}).then(function(d){toast((d.success?"✅ Đã lưu + LLM OK ":"❌ ")+(d.detail||""),!d.success);})
+    .catch(function(e){toast("Lỗi: "+e.message,1)});
+}
+document.addEventListener("DOMContentLoaded",function(){loadLlmProviders().then(loadSettings);loadKeys();});
+</script>
+</body></html>

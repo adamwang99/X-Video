@@ -4,15 +4,17 @@ X-Video Backend — FastAPI Server
 Chạy trên Macmini M4 (192.168.1.12:8767)
 """
 
-import subprocess, json, os, re, shutil, time, hashlib, threading
+import subprocess, json, os, re, shutil, time, hashlib, threading, sqlite3
 from pathlib import Path
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
-import uvicorn, urllib.request
+import uvicorn, urllib.request; _ur = urllib.request
+import subprocess as _sp, pathlib as _pl
 
 # CONFIG
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
@@ -35,6 +37,8 @@ BGM_MAP = {
 
 app = FastAPI(title="X-Video", version="1.1.0")
 
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
 class GenerateRequest(BaseModel):
     url: Optional[str] = None
     text: Optional[str] = None
@@ -48,8 +52,96 @@ class GenerateRequest(BaseModel):
     resolution: str = "fhd"
     music: str = "ambient"
 
-jobs = {}
 jobs_lock = threading.Lock()
+# ---- Job DB (SQLite WAL mode) ----
+JOB_DB = PROJECT_DIR / "jobs.db"
+
+def _job_db():
+    import threading as _t
+    tid = _t.get_ident()
+    if not hasattr(_job_db, "conns"):
+        _job_db.conns = {}
+    if tid not in _job_db.conns:
+        conn = sqlite3.connect(str(JOB_DB))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.row_factory = sqlite3.Row
+        conn.execute("""CREATE TABLE IF NOT EXISTS jobs (
+            job_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'queued',
+            progress INTEGER DEFAULT 0,
+            request_json TEXT,
+            voice_snapshot TEXT,
+            result_json TEXT,
+            error TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )""")
+        conn.commit()
+        _job_db.conns[tid] = conn
+    return _job_db.conns[tid]
+
+def _job_create(jid, req_json, voice_snap="{}"):
+    db = _job_db()
+    db.execute("INSERT OR REPLACE INTO jobs(job_id, status, progress, request_json, voice_snapshot) VALUES(?, 'queued', 0, ?, ?)",
+               (jid, req_json, voice_snap))
+    db.commit()
+
+def _job_update(jid, **fields):
+    db = _job_db()
+    sets = [f"{k}=?" for k in fields]
+    vals = list(fields.values()) + [jid]
+    db.execute(f"UPDATE jobs SET {', '.join(sets)}, updated_at=datetime('now') WHERE job_id=?", vals)
+    db.commit()
+
+def _job_get(jid):
+    db = _job_db()
+    row = db.execute("SELECT * FROM jobs WHERE job_id=?", (jid,)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    result = {"job_id": d["job_id"], "status": d["status"], "progress": d["progress"], "error": d.get("error")}
+    if d.get("result_json"):
+        try:
+            r = json.loads(d["result_json"])
+            for k, v in r.items():
+                result[k] = v
+        except Exception:
+            pass
+    return result
+
+# Rebuild in-memory cache from SQLite on startup
+_jobs_cache = {}
+def _job_list():
+    if _jobs_cache:
+        return _jobs_cache
+    db = _job_db()
+    for row in db.execute("SELECT * FROM jobs WHERE status NOT IN ('done','error') ORDER BY created_at DESC LIMIT 50"):
+        d = dict(row)
+        result = {"job_id": d["job_id"], "status": d["status"], "progress": d["progress"], "error": d.get("error")}
+        if d.get("result_json"):
+            try:
+                r = json.loads(d["result_json"])
+                for k, v in r.items():
+                    result[k] = v
+            except Exception:
+                pass
+        _jobs_cache[d["job_id"]] = result
+    # Also include recent done/error
+    for row in db.execute("SELECT * FROM jobs WHERE status IN ('done','error') ORDER BY created_at DESC LIMIT 20"):
+        d = dict(row)
+        if d["job_id"] not in _jobs_cache:
+            result = {"job_id": d["job_id"], "status": d["status"], "progress": d["progress"], "error": d.get("error")}
+            if d.get("result_json"):
+                try:
+                    r = json.loads(d["result_json"])
+                    for k, v in r.items():
+                        result[k] = v
+                except Exception:
+                    pass
+            _jobs_cache[d["job_id"]] = result
+    return _jobs_cache
+
 
 def clean_html(h): return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', re.sub(r'&[a-z]+;', ' ', h))).strip()
 def categorize(slug):
@@ -99,7 +191,7 @@ def generate_voice(text, voice, output_path, language="vi"):
             with ureq.urlopen(req, timeout=120) as r:
                 with open(output_path, "wb") as f:
                     f.write(r.read())
-            r_dur = subprocess.run(['ffprobe','-v','quiet','-show_entries','format=duration',
+            r_dur = subprocess.run(['/opt/homebrew/bin/ffprobe','-v','quiet','-show_entries','format=duration',
                                     '-of','csv=p=0',str(output_path)],
                                    capture_output=True, text=True, timeout=10)
             dur = float(r_dur.stdout.strip() or 50)
@@ -113,27 +205,27 @@ def generate_voice(text, voice, output_path, language="vi"):
     with open(script_path, "w") as f: f.write(text)
     aiff = output_path.parent / "temp.aiff"
     subprocess.run(['say','-v',voice,'-r',str(rate),'-f',str(script_path),'-o',str(aiff)], capture_output=True, timeout=60)
-    subprocess.run(['ffmpeg','-y','-i',str(aiff),'-acodec','libmp3lame','-b:a','128k',str(output_path)], capture_output=True, timeout=60)
+    subprocess.run(['/opt/homebrew/bin/ffmpeg','-y','-i',str(aiff),'-acodec','libmp3lame','-b:a','128k',str(output_path)], capture_output=True, timeout=60)
     if aiff.exists(): aiff.unlink()
-    r = subprocess.run(['ffprobe','-v','quiet','-show_entries','format=duration','-of','csv=p=0',str(output_path)], capture_output=True, text=True, timeout=10)
+    r = subprocess.run(['/opt/homebrew/bin/ffprobe','-v','quiet','-show_entries','format=duration','-of','csv=p=0',str(output_path)], capture_output=True, text=True, timeout=10)
     dur = float(r.stdout.strip() or 50)
     return int(dur), wc, rate
 
 def generate_bgm(music_style, duration, output_path):
     if music_style == "none":
-        subprocess.run(['ffmpeg','-y','-f','lavfi','-i','anullsrc=r=44100:cl=mono','-t',str(duration),str(output_path)], capture_output=True, timeout=10)
+        subprocess.run(['/opt/homebrew/bin/ffmpeg','-y','-f','lavfi','-i','anullsrc=r=44100:cl=mono','-t',str(duration),str(output_path)], capture_output=True, timeout=10)
         return
     tones = BGM_MAP.get(music_style, BGM_MAP["ambient"])
     inputs = ' '.join([f'-f lavfi -i "sine=frequency={f}:duration={duration}"' for f, _, in tones])
     weights = ':'.join([str(w) for _, w in tones])
     filter_cmd = f'[0:a][1:a][2:a]amix=inputs={len(tones)}:duration=first:weights={weights},afade=t=in:d=1,afade=t=out:st={duration-2}:d=2,volume=0.07'
-    subprocess.run(f'ffmpeg -y {inputs} -filter_complex "{filter_cmd}" -acodec libmp3lame -b:a 64k {output_path}'.split(), capture_output=True, timeout=30)
+    subprocess.run(f'/opt/homebrew/bin/ffmpeg -y {inputs} -filter_complex "{filter_cmd}" -acodec libmp3lame -b:a 64k {output_path}'.split(), capture_output=True, timeout=30)
 
 def make_html(aspect, title, date_str, duration, voice_path, bgm_path, style="news", resolution="fhd"):
     ar_w, ar_h = ASPECT_MAP.get(aspect, (9, 16))
     base_h = RES_MAP.get(resolution, 1080)
     h = base_h
-    w = int(h * ar_w / ar_h)
+    w = int(h * ar_w / ar_h / 2) * 2
     pct = lambda p: int(h * p)
 
     style_desc = {"news":"📺 BẢN TIN","reportage":"🎬 PHÓNG SỰ","analysis":"📊 PHÂN TÍCH","story":"📖 CÂU CHUYỆN","tutorial":"🎓 HƯỚNG DẪN","hot":"🔥 TIN NÓNG"}
@@ -158,8 +250,7 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:#06061a;
 </style></head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="{duration}" data-width="{w}" data-height="{h}">
-  <audio data-start="0" data-duration="{duration}" data-track-index="0" data-volume="1.0" src="{voice_path}"></audio>
-  <audio data-start="0" data-duration="{duration}" data-track-index="1" data-volume="0.3" src="{bgm_path}"></audio>
+  <audio id="voice-main" data-start="0" data-duration="{duration}" data-track-index="0" data-volume="1.0" src="{voice_path}"></audio>
   <div class="bg-grad"></div><div class="bg-grid"></div>
   <div class="circle" style="width:{int(w*0.3)}px;height:{int(w*0.3)}px;top:-{int(h*0.04)}px;right:-{int(w*0.06)}px" id="c1"></div>
   <div class="circle" style="width:{int(w*0.18)}px;height:{int(w*0.18)}px;top:{int(h*0.4)}px;left:-{int(w*0.04)}px" id="c2"></div>
@@ -185,9 +276,9 @@ tl.from("#title",{{opacity:0,y:30,duration:.7,ease:"power3.out"}},.8);
 tl.from("#content",{{opacity:0,y:20,duration:.6,ease:"power2.out"}},1.5);
 tl.from("#cta",{{opacity:0,y:15,duration:.5,ease:"power2.out"}},{duration-5});
 tl.from("#meta",{{opacity:0,duration:.5,ease:"power2.out"}},1.8);
-tl.to("#c1",{{y:-20,duration:4,ease:"sine.inOut",yoyo:true,repeat:-1}},2);
-tl.to("#c2",{{y:20,duration:5,ease:"sine.inOut",yoyo:true,repeat:-1}},2);
-tl.to("#c3",{{y:-15,duration:4.5,ease:"sine.inOut",yoyo:true,repeat:-1}},2);
+tl.to("#c1",{{y:-20,duration:4,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/4)-1}},2);
+tl.to("#c2",{{y:20,duration:5,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/5)-1}},2);
+tl.to("#c3",{{y:-15,duration:4.5,ease:"sine.inOut",yoyo:true,repeat:Math.floor({duration}/4.5)-1}},2);
 tl.to("#root>*",{{opacity:0,duration:1.5,ease:"power2.in"}},{duration-4});
 window.__timelines["main"]=tl;
 </script></body></html>'''
@@ -195,10 +286,10 @@ window.__timelines["main"]=tl;
 def process_job(jid: str, req: GenerateRequest):
     global jobs
     try:
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":5}
+        _job_update(jid, status="processing", progress=5)
         jd = PROJECT_DIR / jid; jd.mkdir(exist_ok=True)
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":15}
+        _job_update(jid, status="processing", progress=15)
         if req.url:
             title, content, excerpt, date_str, category = fetch_content(req.url)
         elif req.text:
@@ -210,20 +301,23 @@ def process_job(jid: str, req: GenerateRequest):
         hook = req.hook or f"Tin nóng: {title[:50]}..."
         cta = req.cta or "Theo dõi AI World để cập nhật tin tức công nghệ mới nhất!"
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":30}
+        _job_update(jid, status="processing", progress=30)
+        # FIX-04: Voice snapshot — lock voice config at job start
+        voice_snap = json.dumps({"voice": req.voice, "language": req.language, "engine": "VieNeu" if req.language == "vi" else "macOS"})
+        _job_update(jid, voice_snapshot=voice_snap)
         voice_text = f"AI World News. {hook} {excerpt or title}. {cta} Visit a i world dot v n."
         duration, wc, rate = generate_voice(voice_text, req.voice, jd/"voice.mp3", req.language)
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":45}
+        _job_update(jid, status="processing", progress=45)
         generate_bgm(req.music, duration, jd/"bgm.mp3")
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":55}
+        _job_update(jid, status="processing", progress=55)
         html = make_html(req.aspect, title, date_str, duration, "voice.mp3", "bgm.mp3", req.style, req.resolution)
         with open(jd/"index.html","w") as f: f.write(html)
         with open(jd/"hyperframes.json","w") as f:
             json.dump({"$schema":"https://hyperframes.heygen.com/schema/hyperframes.json","paths":{"blocks":"compositions","components":"compositions/components","assets":"assets"}}, f)
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":70}
+        _job_update(jid, status="processing", progress=70)
         env = os.environ.copy(); env["PATH"] = os.path.expanduser("~/.local/bin")+":"+env.get("PATH","")
         proc = subprocess.run(["npx","hyperframes@latest","render"], cwd=str(jd), capture_output=True, text=True, timeout=600, env=env)
         if proc.returncode != 0:
@@ -232,20 +326,19 @@ def process_job(jid: str, req: GenerateRequest):
         mp4s = sorted((jd/"renders").glob("*.mp4"), key=os.path.getmtime, reverse=True)
         if not mp4s: raise Exception("No MP4 output")
 
-        with jobs_lock: jobs[jid] = {"status":"processing","progress":90}
+        _job_update(jid, status="processing", progress=90)
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         out_name = f"xvideo_{jid[:8]}_{ts}.mp4"
         out_path = OUTPUT_DIR / out_name
         shutil.copy(str(mp4s[0]), str(out_path))
         size_kb = out_path.stat().st_size // 1024
 
-        with jobs_lock:
-            jobs[jid] = {"status":"done","progress":100,
-                "video_path": out_name, "duration": duration, "size_kb": size_kb,
+        _job_update(jid, status="done", progress=100,
+            result_json=json.dumps({"video_path": out_name, "duration": duration, "size_kb": size_kb,
                 "word_count": wc, "tts_rate": rate, "title": title[:80], "category": category,
-                "style": req.style, "aspect": req.aspect}
+                "style": req.style, "aspect": req.aspect}))
     except Exception as e:
-        with jobs_lock: jobs[jid] = {"status":"error","progress":0,"error":str(e)}
+        _job_update(jid, status="error", progress=0, error=str(e))
 
 # ---- API ----
 
@@ -291,24 +384,20 @@ def generate(req: GenerateRequest, bg: BackgroundTasks):
     if not req.url and not req.text:
         raise HTTPException(400, "Cần url hoặc text")
     jid = hashlib.md5(f"{time.time()}{req.url or req.text}".encode()).hexdigest()
-    with jobs_lock: jobs[jid] = {"status":"queued","progress":0}
+    _job_create(jid, req.model_dump_json())
     bg.add_task(process_job, jid, req)
     return {"job_id": jid, "status": "queued", "check_url": f"/api/jobs/{jid}"}
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
-    with jobs_lock:
-        j = jobs.get(job_id)
+    j = _job_get(job_id)
     if not j: raise HTTPException(404, "Not found")
-    return {"job_id": job_id, **{"status":j.get("status","?"), "progress":j.get("progress",0),
-        "error":j.get("error"), "video_path":j.get("video_path"), "duration":j.get("duration"),
-        "size_kb":j.get("size_kb"), "word_count":j.get("word_count"), "tts_rate":j.get("tts_rate"),
-        "title":j.get("title"), "category":j.get("category")}}
+    return j
 
 @app.get("/api/jobs")
 def list_jobs():
-    with jobs_lock: return {"jobs": {k: {"status":v.get("status"),"progress":v.get("progress"),
-        "title":v.get("title"),"video_path":v.get("video_path")} for k,v in jobs.items()}}
+    return {"jobs": {k: {"status":v.get("status"),"progress":v.get("progress"),
+        "title":v.get("title"),"video_path":v.get("video_path")} for k,v in _job_list().items()}}
 
 @app.get("/output/{filename}")
 def serve(filename: str):
@@ -319,9 +408,87 @@ def serve(filename: str):
 @app.get("/healthz")
 def healthz(): return {"status":"ok","machine":"Macmini","gpu":"Apple M4"}
 
+
+# ===== VOICE LIBRARY PROXY =====
+@app.get("/api/voice-library/proxy/voices")
+def _vlv():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/voices")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"voices": [], "count": 0}
+
+@app.get("/api/voice-library/proxy/custom-fields")
+def _vlf():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/voice-library/custom-fields")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"custom_fields": []}
+
+@app.get("/api/voice-library/proxy/tts-status")
+def _vlt():
+    try:
+        r = _ur.Request("http://127.0.0.1:8769/api/tts-status")
+        with _ur.urlopen(r, timeout=3) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"overall": "partial", "services": {}}
+
+@app.post("/api/voice-library/proxy/voices/{voice_id}/favorite")
+def _vlfa(voice_id: str):
+    try:
+        r = _ur.Request(f"http://127.0.0.1:8769/api/voices/{voice_id}/favorite", method="POST")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"success": False}
+
+@app.delete("/api/voice-library/proxy/voices/{voice_id}")
+def _vld(voice_id: str):
+    try:
+        r = _ur.Request(f"http://127.0.0.1:8769/api/voices/{voice_id}", method="DELETE")
+        with _ur.urlopen(r, timeout=5) as resp:
+            return __import__("json").loads(resp.read())
+    except: return {"success": False}
+
+@app.post("/api/try-tts")
+def _try_tts(data: dict):
+    text = data.get("text", "Xin chào")
+    engine = data.get("engine", "vieneu")
+    eps = {"vieneu":"http://127.0.0.1:6023/v1/audio/speech","omnivoice":"http://127.0.0.1:6024/v1/audio/speech","valtec":"http://127.0.0.1:6025/v1/audio/speech"}
+    ep = eps.get(engine, eps["vieneu"])
+    body = __import__("json").dumps({"model":engine,"input":text,"voice":"female_south","speed":1.0}).encode()
+    req = _ur.Request(ep, data=body, method="POST")
+    req.add_header("Content-Type", "application/json")
+    try:
+        with _ur.urlopen(req, timeout=120) as resp:
+            data = resp.read()
+        from fastapi.responses import Response
+        return Response(content=data, media_type="audio/mp3")
+    except Exception as e:
+        raise __import__("fastapi").HTTPException(503, f"TTS engine '{engine}' failed: {str(e)}")
+
+
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="static")
 
 if __name__ == "__main__":
+    # FIX-05: Recover stale jobs on startup
+    try:
+        db = _job_db()
+        stale = db.execute("SELECT job_id FROM jobs WHERE status IN ('queued','processing')").fetchall()
+        for row in stale:
+            db.execute("UPDATE jobs SET status='error', error='Server restart - job lost', updated_at=datetime('now') WHERE job_id=?", (row[0],))
+        if stale:
+            db.commit()
+            print(f"  Job recovery: {len(stale)} stale jobs -> marked as error")
+    except Exception as ex:
+        print(f"  Job recovery skipped: {ex}")
+    _vlp = _pl.Path(__file__).parent / "voice_library.py"
+    if _vlp.exists():
+        _sp.Popen(["python3", str(_vlp)], stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        import time; time.sleep(5)
+        print("Voice Library spawned on :8769")
+    else:
+        print("voice_library.py not found at", str(_vlp))
     print(f"🚀 X-Video Server v1.1")
     print(f"   http://0.0.0.0:8767")
     uvicorn.run(app, host="0.0.0.0", port=8767)
